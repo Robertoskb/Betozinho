@@ -76,7 +76,7 @@ class Talks(commands.Cog):
         return Dict
 
     
-    def BotDict(self, mode, type) -> dict:
+    def BotDict(self, mode, type) -> list:
         Dict = {
             'input': {
                 'ibackmoment':['já volto','ja volto',
