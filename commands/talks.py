@@ -27,10 +27,10 @@ class Talks(commands.Cog):
 
     def Response(self):
         msgtype = self.MsgType()
-        events = self.Events()
+        events = self.Responses()
         
         if msgtype in events:
-            return self.create_task(events[msgtype]())
+            return self.create_task(self.send(events[msgtype]))
             
                 
     def MsgType(self) -> str:
@@ -46,17 +46,18 @@ class Talks(commands.Cog):
         return msgtype
 
     
-    def Events(self) -> dict:
+    def Responses(self) -> dict:
         Random = lambda mode, type: random.choice(self.BotDict(mode, type)).format(self.message.author.name)
 
         events = {
-            'laughs': lambda: self.send('hehe'),
-            'smilings' : lambda: self.send(Random('responses','smilings')),
-            'ibackmoment': lambda: self.send('ok'),
-            'ileft': lambda: self.send(Random('responses','bye')),
-            'sad': lambda: self.send(Random('responses','sad')),
-            'hi': lambda: self.send(f'Oie, {self.message.author.name} ^^'),
-            'uuu': lambda: self.send(f'uuuu {self.message.author.name} 👀')
+            'laughs': 'hehe',
+            'mua': 'muaa',
+            'smilings' : Random('responses','smilings'),
+            'ibackmoment': 'ok',
+            'ileft': Random('responses','bye'),
+            'sad': Random('responses','sad'),
+            'hi': f'Oie, {self.message.author.name} ^^',
+            'uuu': f'uuuu {self.message.author.name} 👀'
         }
         
         return events    
@@ -65,6 +66,7 @@ class Talks(commands.Cog):
     def TypeNames(self) -> dict:
         Dict = {
             'uuu' : ['uuu'],
+            'mua' : ['mua'],
             'laughs': ['hehe', 'hihi', 'haha'],
             'hi' : ['oie', 'oi betozinho', 'olá betozinho', 'ola betozinho'],
             'ibackmoment' : self.BotDict('input','ibackmoment'),
@@ -85,7 +87,8 @@ class Talks(commands.Cog):
                 'ileft':['tchau betozinho','chau betozinho','xau betozinho', 'bye betozinho','baie betozinho',
                 'bai betozinho','vou sair', 'preciso sair', 'tenho que sair'], 
 
-                'sad':[';-;',':(','):',':<','>:','mua','😦','😕','😣','😓','😔','🙁','☹️','😞','😟','😥','🥲','😢','😭'],
+                'sad':['bua',';-;',':(','):',':<','>:','😦','😕','😣',
+                '😓','😔','🙁','☹️','😞','😟','😥','🥲','😢','😭'],
 
                 'smilings':['^^',':b',':p','(:',':)',':>','<:','🙂','😁','😄','😎'],
             },
@@ -93,7 +96,7 @@ class Talks(commands.Cog):
             'responses':{
                 'bye':['Tchau {}', 'Baie {}', 'Bai bai {}', 'Bye bye {}', 'Chau {}', 'Xau {}'],
 
-                'sad':['Muaa', 'Vai chorar?', '🙁', 'Não fique triste {}', ';-;'],
+                'sad':['Vai chorar?', '🙁', 'Não fique triste {}', ';-;'],
 
                 'smilings':['^^',':p',':b','(:','🙂','😁','😄','😎']
 
