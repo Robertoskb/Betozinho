@@ -47,7 +47,7 @@ class Talks(commands.Cog):
 
     
     def Events(self) -> dict:
-        Random = lambda fd, fi: random.choice(self.ListMap(fd, fi)).format(self.message.author.name)
+        Random = lambda mode, type: random.choice(self.BotDict(mode, type)).format(self.message.author.name)
 
         events = {
             'laughs': lambda: self.send('hehe'),
@@ -67,20 +67,41 @@ class Talks(commands.Cog):
             'uuu' : ['uuu'],
             'laughs': ['hehe', 'hihi', 'haha'],
             'hi' : ['oie', 'oi betozinho', 'olá betozinho', 'ola betozinho'],
-            'ibackmoment' : self.ListMap('dict','ibackmoment'),
-            'ileft' : self.ListMap('dict','ileft'),
-            'sad' : self.ListMap('dict','sad'),
-            'smilings' : self.ListMap('dict','smilings'),          
+            'ibackmoment' : self.BotDict('input','ibackmoment'),
+            'ileft' : self.BotDict('input','ileft'),
+            'sad' : self.BotDict('input','sad'),
+            'smilings' : self.BotDict('input','smilings'),          
         }
 
         return Dict
 
-    def ListMap(self, fd, fi) -> list:
-        Replace = lambda x: x.replace('\n', '')
-        ReadLines = lambda fd, fi : open(f'{fd}\{fi}.txt', encoding='utf-8').readlines()
-        ListMap = lambda fd, fi: list(map(Replace, ReadLines(fd, fi)))
+    
+    def BotDict(self, mode, type) -> dict:
+        Dict = {
+            'input': {
+                'ibackmoment':['já volto','ja volto',
+                'daqui a pouco volto', 'daqui a pouco eu volto'], 
 
-        return ListMap(fd, fi)
+                'ileft':['tchau betozinho','chau betozinho','xau betozinho', 'bye betozinho','baie betozinho',
+                'bai betozinho','vou sair', 'preciso sair', 'tenho que sair'], 
+
+                'sad':[';-;',':(','):',':<','>:','mua','😦','😕','😣','😓','😔','🙁','☹️','😞','😟','😥','🥲','😢','😭'],
+
+                'smilings':['^^',':b',':p','(:',':)',':>','<:','🙂','😁','😄','😎'],
+            },
+
+            'responses':{
+                'bye':['Tchau {}', 'Baie {}', 'Bai bai {}', 'Bye bye {}', 'Chau {}', 'Xau {}'],
+
+                'sad':['Muaa', 'Vai chorar?', '🙁', 'Não fique triste {}', ';-;'],
+
+                'smilings':['^^',':p',':b','(:','🙂','😁','😄','😎']
+
+            }
+
+        }
+
+        return Dict[mode][type]
 
 
 def setup(bot):
