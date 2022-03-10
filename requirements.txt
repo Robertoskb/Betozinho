@@ -1,0 +1,8 @@
+discord.py
+requests
+python-decouple
+python-dotenv
+youtube-dl
+pynacl
+ffmpeg
+googletrans==4.0.0rc1 
