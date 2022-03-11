@@ -47,7 +47,7 @@ class Talks(commands.Cog):
 
     
     def Responses(self) -> dict:
-        Random = lambda mode, type: random.choice(self.BotDict(mode, type)).format(self.message.author.name)
+        Random = lambda m, t: random.choice(self.BotDict(m, t)).format(self.message.author.name)
 
         events = {
             'laughs': 'hehe',
@@ -60,15 +60,15 @@ class Talks(commands.Cog):
             'uuu': f'uuuu {self.message.author.name} 👀'
         }
         
-        return events    
-        
+        return events            
 
     def TypeNames(self) -> dict:
+
         Dict = {
             'uuu' : ['uuu'],
             'mua' : ['mua'],
-            'laughs': ['hehe', 'hihi', 'haha'],
-            'hi' : ['oie', 'oi betozinho', 'olá betozinho', 'ola betozinho'],
+            'laughs': self.BotDict('input','laughs'),
+            'hi' : self.BotDict('input','hi'),
             'ibackmoment' : self.BotDict('input','ibackmoment'),
             'ileft' : self.BotDict('input','ileft'),
             'sad' : self.BotDict('input','sad'),
@@ -81,7 +81,12 @@ class Talks(commands.Cog):
     def BotDict(self, mode, type) -> list:
         Dict = {
             'input': {
+                'laughs': ['hehe', 'hihi', 'haha'],
+
+                'hi' : ['oie', 'oi betozinho', 'olá betozinho', 'ola betozinho'],
+
                 'ibackmoment':['já volto','ja volto',
+
                 'daqui a pouco volto', 'daqui a pouco eu volto'], 
 
                 'ileft':['tchau betozinho','chau betozinho','xau betozinho', 'bye betozinho','baie betozinho',
@@ -93,7 +98,7 @@ class Talks(commands.Cog):
                 'smilings':['^^',':b',':p','(:',':)',':>','<:','🙂','😁','😄','😎'],
             },
 
-            'responses':{
+            'responses': {
                 'bye':['Tchau {}', 'Baie {}', 'Bai bai {}', 'Bye bye {}', 'Chau {}', 'Xau {}'],
 
                 'sad':['Vai chorar?', '🙁', 'Não fique triste {}', ';-;'],
