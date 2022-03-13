@@ -5,6 +5,7 @@ from decouple import config
 
 bot = commands.Bot('-')
 
+
 @bot.event
 async def on_ready():
     activity = discord.Game(name='Minecraft', type=3)

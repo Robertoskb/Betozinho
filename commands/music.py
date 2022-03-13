@@ -1,495 +1,694 @@
-import discord
-from discord.ext import commands, tasks
-import random
 import asyncio
-import itertools
-import sys
-import traceback
-from async_timeout import timeout
-from functools import partial
-import youtube_dl
-from youtube_dl import YoutubeDL
+import datetime as dt
+import enum
+import random
+import re
+import typing as t
+from enum import Enum
 
+import aiohttp
+import discord
+import wavelink
+from discord.ext import commands
 
-# Essa parte do bot não foi eu quem escreveu, eu encontrei esse código na internet e modifiquei o que pude
-
-# Suppress noise about console usage from errors
-youtube_dl.utils.bug_reports_message = lambda: ''
-
-ytdlopts = {
-    'format': 'bestaudio/best',
-    'outtmpl': 'downloads/%(extractor)s-%(id)s-%(title)s.%(ext)s',
-    'restrictfilenames': True,
-    'noplaylist': True,
-    'nocheckcertificate': True,
-    'ignoreerrors': False,
-    'logtostderr': False,
-    'quiet': True,
-    'no_warnings': True,
-    'default_search': 'auto',
-    'source_address': '0.0.0.0'  # ipv6 addresses cause issues sometimes
+URL_REGEX = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+LYRICS_URL = "https://some-random-api.ml/lyrics?title="
+HZ_BANDS = (20, 40, 63, 100, 150, 250, 400, 450, 630, 1000, 1600, 2500, 4000, 10000, 16000)
+TIME_REGEX = r"([0-9]{1,2})[:ms](([0-9]{1,2})s?)?"
+OPTIONS = {
+    "1️⃣": 0,
+    "2⃣": 1,
+    "3⃣": 2,
+    "4⃣": 3,
+    "5⃣": 4,
 }
 
-ffmpegopts = {
-    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-    'options': '-vn'
-}
 
-ytdl = YoutubeDL(ytdlopts)
+class AlreadyConnectedToChannel(commands.CommandError):
+    pass
 
 
-class VoiceConnectionError(commands.CommandError):
-    """Custom Exception class for connection errors."""
+class NoVoiceChannel(commands.CommandError):
+    pass
 
 
-class InvalidVoiceChannel(VoiceConnectionError):
-    """Exception for cases of invalid Voice Channels."""
+class QueueIsEmpty(commands.CommandError):
+    pass
 
 
-class YTDLSource(discord.PCMVolumeTransformer):
+class NoTracksFound(commands.CommandError):
+    pass
 
-    def __init__(self, source, *, data, requester):
-        super().__init__(source)
-        self.requester = requester
 
-        self.title = data.get('title')
-        self.web_url = data.get('webpage_url')
-        self.duration = data.get('duration')
-        self.thumbnail = data.get('thumbnail')
+class PlayerIsAlreadyPaused(commands.CommandError):
+    pass
 
-        # YTDL info dicts (data) have other useful information you might want
-        # https://github.com/rg3/youtube-dl/blob/master/README.md
 
-    def __getitem__(self, item: str):
-        """Allows us to access attributes similar to a dict.
-        This is only useful when you are NOT downloading.
-        """
-        return self.__getattribute__(item)
+class NoMoreTracks(commands.CommandError):
+    pass
 
-    @classmethod
-    async def create_source(cls, ctx, search: str, *, loop, download=False):
-        loop = loop or asyncio.get_event_loop()
 
-        to_run = partial(ytdl.extract_info, url=search, download=download)
-        data = await loop.run_in_executor(None, to_run)
+class NoPreviousTracks(commands.CommandError):
+    pass
 
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
 
-        
+class InvalidRepeatMode(commands.CommandError):
+    pass
 
-        embed = discord.Embed(title='{}'.format(data['title']), url = '{}'.format(data['webpage_url']),
-        description=f'Pedida por {ctx.author.mention}', color = 0x00B115)
 
-        embed.set_author(name="Adicionada à fila", icon_url=ctx.author.avatar_url)
-        embed.set_thumbnail(url=data['thumbnail'])
+class VolumeTooLow(commands.CommandError):
+    pass
 
-        await ctx.send(embed=embed)
 
-        if download:
-            source = ytdl.prepare_filename(data)
+class VolumeTooHigh(commands.CommandError):
+    pass
+
+
+class MaxVolume(commands.CommandError):
+    pass
+
+
+class MinVolume(commands.CommandError):
+    pass
+
+
+class NoLyricsFound(commands.CommandError):
+    pass
+
+
+class InvalidEQPreset(commands.CommandError):
+    pass
+
+
+class NonExistentEQBand(commands.CommandError):
+    pass
+
+
+class EQGainOutOfBounds(commands.CommandError):
+    pass
+
+
+class InvalidTimeString(commands.CommandError):
+    pass
+
+
+class RepeatMode(Enum):
+    NONE = 0
+    ONE = 1
+    ALL = 2
+
+
+class Queue:
+    def __init__(self):
+        self._queue = []
+        self.position = 0
+        self.repeat_mode = RepeatMode.NONE
+
+    @property
+    def is_empty(self):
+        return not self._queue
+
+    @property
+    def current_track(self):
+        if not self._queue:
+            raise QueueIsEmpty
+
+        if self.position <= len(self._queue) - 1:
+            return self._queue[self.position]
+
+    @property
+    def upcoming(self):
+        if not self._queue:
+            raise QueueIsEmpty
+
+        return self._queue[self.position + 1:]
+
+    @property
+    def history(self):
+        if not self._queue:
+            raise QueueIsEmpty
+
+        return self._queue[:self.position]
+
+    @property
+    def length(self):
+        return len(self._queue)
+
+    def add(self, *args):
+        self._queue.extend(args)
+
+    def get_next_track(self):
+        if not self._queue:
+            raise QueueIsEmpty
+
+        self.position += 1
+
+        if self.position < 0:
+            return None
+        elif self.position > len(self._queue) - 1:
+            if self.repeat_mode == RepeatMode.ALL:
+                self.position = 0
+            else:
+                return None
+
+        return self._queue[self.position]
+
+    def shuffle(self):
+        if not self._queue:
+            raise QueueIsEmpty
+
+        upcoming = self.upcoming
+        random.shuffle(upcoming)
+        self._queue = self._queue[:self.position + 1]
+        self._queue.extend(upcoming)
+
+    def set_repeat_mode(self, mode):
+        if mode == "none":
+            self.repeat_mode = RepeatMode.NONE
+        elif mode == "1":
+            self.repeat_mode = RepeatMode.ONE
+        elif mode == "all":
+            self.repeat_mode = RepeatMode.ALL
+
+    def empty(self):
+        self._queue.clear()
+        self.position = 0
+
+
+class Player(wavelink.Player):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.queue = Queue()
+        self.eq_levels = [0.] * 15
+
+    async def connect(self, ctx, channel=None):
+        if self.is_connected:
+            raise AlreadyConnectedToChannel
+
+        if (channel := getattr(ctx.author.voice, "channel", channel)) is None:
+            raise NoVoiceChannel
+
+        await super().connect(channel.id)
+        return channel
+
+    async def teardown(self):
+        try:
+            await self.destroy()
+        except KeyError:
+            pass
+
+    async def add_tracks(self, ctx, tracks):
+        if not tracks:
+            raise NoTracksFound
+
+        if isinstance(tracks, wavelink.TrackPlaylist):
+            self.queue.add(*tracks.tracks)
+        elif len(tracks) == 1:
+            self.queue.add(tracks[0])
+            await ctx.send(f"Adicionado {tracks[0].title} à fila")
         else:
-            return {'webpage_url': data['webpage_url'], 'requester': ctx.author, 'title': data['title']}
+            if (track := await self.choose_track(ctx, tracks)) is not None:
+                self.queue.add(track)
+                await ctx.send(f"Adicionado {track.title} à fila")
 
-        return cls(discord.FFmpegPCMAudio(source), data=data, requester=ctx.author)
+        if not self.is_playing and not self.queue.is_empty:
+            await self.start_playback()
 
-    @classmethod
-    async def regather_stream(cls, data, *, loop):
-        """Used for preparing a stream, instead of downloading.
-        Since Youtube Streaming links expire."""
-        loop = loop or asyncio.get_event_loop()
-        requester = data['requester']
+    async def choose_track(self, ctx, tracks):
+        def _check(r, u):
+            return (
+                r.emoji in OPTIONS.keys()
+                and u == ctx.author
+                and r.message.id == msg.id
+            )
 
-        to_run = partial(ytdl.extract_info, url=data['webpage_url'], download=False)
-        data = await loop.run_in_executor(None, to_run)
+        embed = discord.Embed(
+            title="Choose a song",
+            description=(
+                "\n".join(
+                    f"**{i+1}.** {t.title} ({t.length//60000}:{str(t.length%60).zfill(2)})"
+                    for i, t in enumerate(tracks[:5])
+                )
+            ),
+            colour=ctx.author.colour,
+            timestamp=dt.datetime.utcnow()
+        )
+        embed.set_author(name="Query Results")
+        embed.set_footer(text=f"Invoked by {ctx.author.display_name}", icon_url=ctx.author.avatar_url)
 
-        return cls(discord.FFmpegPCMAudio(data['url']), data=data, requester=requester)
+        msg = await ctx.send(embed=embed)
+        for emoji in list(OPTIONS.keys())[:min(len(tracks), len(OPTIONS))]:
+            await msg.add_reaction(emoji)
+
+        try:
+            reaction, _ = await self.bot.wait_for("reaction_add", timeout=60.0, check=_check)
+        except asyncio.TimeoutError:
+            await msg.delete()
+            await ctx.message.delete()
+        else:
+            await msg.delete()
+            return tracks[OPTIONS[reaction.emoji]]
+
+    async def start_playback(self):
+        await self.play(self.queue.current_track)
+
+    async def advance(self):
+        try:
+            if (track := self.queue.get_next_track()) is not None:
+                await self.play(track)
+        except QueueIsEmpty:
+            pass
+
+    async def repeat_track(self):
+        await self.play(self.queue.current_track)
 
 
-class MusicPlayer:
-    """A class which is assigned to each guild using the bot for Music.
-    This class implements a queue and loop, which allows for different guilds to listen to different playlists
-    simultaneously.
-    When the bot disconnects from the Voice it's instance will be destroyed.
-    """
-
-    __slots__ = ('bot', '_guild', '_channel', '_cog', 'queue', 'next', 'current', 'np', 'volume', 'ctx')
-
-    def __init__(self, ctx):
-        self.bot = ctx.bot
-        self.ctx = ctx
-        self._guild = ctx.guild
-        self._channel = ctx.channel
-        self._cog = ctx.cog
-
-        self.queue = asyncio.Queue()
-        self.next = asyncio.Event()
-
-        self.np = None  # Now playing message
-        self.volume = .5
-        self.current = None
-
-        ctx.bot.loop.create_task(self.player_loop())
-
-    async def player_loop(self):
-        """Our main player loop."""
-        await self.bot.wait_until_ready()
-
-        while not self.bot.is_closed():
-            self.next.clear()
-
-            try:
-                # Wait for the next song. If we timeout cancel the player and disconnect...
-                async with timeout(300):  # 5 minutes...
-                    source = await self.queue.get()
-            except asyncio.TimeoutError:
-                return self.destroy(self._guild)
-
-            if not isinstance(source, YTDLSource):
-                # Source was probably a stream (not downloaded)
-                # So we should regather to prevent stream expiration
-                try:
-                    source = await YTDLSource.regather_stream(source, loop=self.bot.loop)
-                except Exception as e:
-                    await self._channel.send(f'Ocorreu um erro ao processar sua música.\n'
-                                             f'```css\n[{e}]\n```')
-                    continue
-
-            source.volume = self.volume
-            self.current = source
-
-            self._guild.voice_client.play(source, after=lambda _: self.bot.loop.call_soon_threadsafe(self.next.set))
-
-            file = discord.File('images/betozinho_music.jpeg', filename='betozinho_music.jpeg')
-
-            embed = discord.Embed(title="", description=f"[{source.title}]({source.web_url})", color=discord.Color.green())
-
-            embed.set_thumbnail(url='attachment://betozinho_music.jpeg')
-            embed.set_author(icon_url=self.ctx.message.author.avatar_url, name=f"Now Playing 🎶")
-            
-            self.np = await self._channel.send(file = file,embed=embed)
-            await self.next.wait()
-
-            # Make sure the FFmpeg process is cleaned up.
-            source.cleanup()
-            self.current = None
-
-    def destroy(self, guild):
-        """Disconnect and cleanup the player."""
-        return self.bot.loop.create_task(self._cog.cleanup(self.ctx, guild))
-    
-    
-class Music(commands.Cog):
-    """Music related commands."""
-
-    __slots__ = ('bot', 'players')
-
+class Music(commands.Cog, wavelink.WavelinkMixin):
     def __init__(self, bot):
         self.bot = bot
-        self.players = {}
+        self.wavelink = wavelink.Client(bot=bot)
+        self.bot.loop.create_task(self.start_nodes())
 
-    async def cleanup(self, ctx, guild):
-        try:
-            await guild.voice_client.disconnect()
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        if not member.bot and after.channel is None:
+            if not [m for m in before.channel.members if not m.bot]:
+                await self.get_player(member.guild).teardown()
 
-            file = discord.File('images/betozinho_hihi.jpeg', filename='betozinho_hihi.jpeg')
-            embed = discord.Embed(title='Desconectado',description='Bye bye', color=discord.Color.green())
-            embed.set_thumbnail(url='attachment://betozinho_hihi.jpeg')
+    @wavelink.WavelinkMixin.listener()
+    async def on_node_ready(self, node):
+        print(f" Wavelink node `{node.identifier}` ready.")
 
-            await ctx.channel.send(file = file,embed=embed)
+    @wavelink.WavelinkMixin.listener("on_track_stuck")
+    @wavelink.WavelinkMixin.listener("on_track_end")
+    @wavelink.WavelinkMixin.listener("on_track_exception")
+    async def on_player_stop(self, node, payload):
+        if payload.player.queue.repeat_mode == RepeatMode.ONE:
+            await payload.player.repeat_track()
+        else:
+            await payload.player.advance()
 
-        except AttributeError:
-            pass
+    async def cog_check(self, ctx):
+        if isinstance(ctx.channel, discord.DMChannel):
+            await ctx.send("Comandos de música não estão disponíveis em DMs.")
+            return False
 
-        try:
-            del self.players[guild.id]
-        except KeyError:
-            pass
-
-
-    async def __local_check(self, ctx):
-        """A local check which applies to all commands in this cog."""
-        if not ctx.guild:
-            raise commands.NoPrivateMessage
         return True
 
-    async def __error(self, ctx, error):
-        """A local error handler for all errors arising from commands in this cog."""
-        if isinstance(error, commands.NoPrivateMessage):
-            try:
-                return await ctx.send('This command can not be used in Private Messages.')
-            except discord.HTTPException:
-                pass
-        elif isinstance(error, InvalidVoiceChannel):
-            await ctx.send('Error connecting to Voice Channel. '
-                           'Please make sure you are in a valid channel or provide me with one')
+    async def start_nodes(self):
+        await self.bot.wait_until_ready()
 
-        print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
-        traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+        nodes = {
+            "MAIN": {
+            'host':'lava.link',
+            'port': 80,
+            'rest_uri': f'http://lava.link:80',
+            'identifier': 'MAIN',
+            'password': 'anything',
+            'region': 'singapore', 
+    }
+        }
 
-    def get_player(self, ctx):
-        """Retrieve the guild player, or generate one."""
-        try:
-            player = self.players[ctx.guild.id]
-        except KeyError:
-            player = MusicPlayer(ctx)
-            self.players[ctx.guild.id] = player
+        for node in nodes.values():
+            await self.wavelink.initiate_node(**node)
 
-        return player
+    def get_player(self, obj):
+        if isinstance(obj, commands.Context):
+            return self.wavelink.get_player(obj.guild.id, cls=Player, context=obj)
+        elif isinstance(obj, discord.Guild):
+            return self.wavelink.get_player(obj.id, cls=Player)
 
-    @commands.command(name='join', aliases=['connect', 'j'], description="connects to voice")
-    async def connect_(self, ctx, *, channel: discord.VoiceChannel=None):
-        """Connect to voice.
-        Parameters
-        ------------
-        channel: discord.VoiceChannel [Optional]
-            The channel to connect to. If a channel is not specified, an attempt to join the voice channel you are in
-            will be made.
-        This command also handles moving the bot to different channels.
-        """
-        if not channel:
-            try:
-                channel = ctx.author.voice.channel
-            except AttributeError:
-                embed = discord.Embed(title="", description="Nenhum canal de voz para participar. Por favor, ative `join` de um canal de voz.", color=discord.Color.green())
-                await ctx.send(embed=embed)
-                raise InvalidVoiceChannel('No channel to join. Please either specify a valid channel or join one.')
+    @commands.command(name="connect", aliases=["join"])
+    async def connect_command(self, ctx, *, channel: t.Optional[discord.VoiceChannel]):
+        player = self.get_player(ctx)
+        channel = await player.connect(ctx, channel)
+        await ctx.send(f"Conectado em {channel.name}.")
 
-        vc = ctx.voice_client
+    @connect_command.error
+    async def connect_command_error(self, ctx, exc):
+        if isinstance(exc, AlreadyConnectedToChannel):
+            await ctx.send("Já conectado a um canal de voz")
+        elif isinstance(exc, NoVoiceChannel):
+            await ctx.send("Nenhum canal de voz adequado foi fornecido")
 
-        if vc:
-            if vc.channel.id == channel.id:
-                return
-            try:
-                await vc.move_to(channel)
-            except asyncio.TimeoutError:
-                raise VoiceConnectionError(f'Moving to channel: <{channel}> timed out.')
+    @commands.command(name="disconnect", aliases=["leave", "bye"])
+    async def disconnect_command(self, ctx):
+        player = self.get_player(ctx)
+        await player.teardown()
+        await ctx.send("Desconectado.")
+
+    @commands.command(name="play", aliases=["p"])
+    async def play_command(self, ctx, *, query: t.Optional[str]):
+        player = self.get_player(ctx)
+
+        if not player.is_connected:
+            await player.connect(ctx)
+
+        if query is None:
+            if player.queue.is_empty:
+                raise QueueIsEmpty
+
+            await player.set_pause(False)
+            await ctx.send("A reprodução foi retomada")
+
         else:
-            try:
-                await channel.connect()
-            except asyncio.TimeoutError:
-                raise VoiceConnectionError(f'Connecting to channel: <{channel}> timed out.')
-        
-        await ctx.send(f'**Joined `{channel}`**')
+            query = query.strip("<>")
+            if not re.match(URL_REGEX, query):
+                query = f"ytsearch:{query}"
 
-    @commands.command(name='play', aliases=['sing','p'], description="streams music")
-    async def play_(self, ctx, *, search: str):
-        """Request a song and add it to the queue.
-        This command attempts to join a valid voice channel if the bot is not already in one.
-        Uses YTDL to automatically search and retrieve a song.
-        Parameters
-        ------------
-        search: str [Required]
-            The song to search and retrieve using YTDL. This could be a simple search, an ID or URL.
-        """
-        await ctx.trigger_typing()
+            await player.add_tracks(ctx, await self.wavelink.get_tracks(query))
 
-        vc = ctx.voice_client
+    @play_command.error
+    async def play_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("Não há músicas para tocar porque a fila está vazia")
+        elif isinstance(exc, NoVoiceChannel):
+            await ctx.send("Nenhum canal de voz adequado foi fornecido")
 
-        if not vc:
-            await ctx.invoke(self.connect_)
-
+    @commands.command(name="pause")
+    async def pause_command(self, ctx):
         player = self.get_player(ctx)
 
-        # If download is False, source will be a dict which will be used later to regather the stream.
-        # If download is True, source will be a discord.FFmpegPCMAudio with a VolumeTransformer.
-        source = await YTDLSource.create_source(ctx, search, loop=self.bot.loop, download=False)
+        if player.is_paused:
+            raise PlayerIsAlreadyPaused
 
-        await player.queue.put(source)
+        await player.set_pause(True)
+        await ctx.send("A reprodução foi pausada")
 
-    @commands.command(name='pause', description="pauses music")
-    async def pause_(self, ctx):
-        """Pause the currently playing song."""
-        vc = ctx.voice_client
+    @pause_command.error
+    async def pause_command_error(self, ctx, exc):
+        if isinstance(exc, PlayerIsAlreadyPaused):
+            await ctx.send("Já pausado")
 
-        if not vc or not vc.is_playing():
-            embed = discord.Embed(title="", description="no momento não estou tocando nada", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-        elif vc.is_paused():
-            return
+    @commands.command(name="stop")
+    async def stop_command(self, ctx):
+        player = self.get_player(ctx)
+        player.queue.empty()
+        await player.stop()
+        await ctx.send("A reprodução parou")
 
-        vc.pause()
-        await ctx.send("Paused ⏸️")
+    @commands.command(name="next", aliases=["skip"])
+    async def next_command(self, ctx):
+        player = self.get_player(ctx)
 
-    @commands.command(name='resume', description="resumes music")
-    async def resume_(self, ctx):
-        """Resume the currently paused song."""
-        vc = ctx.voice_client
+        if not player.queue.upcoming:
+            raise NoMoreTracks
 
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-        elif not vc.is_paused():
-            return
+        await player.stop()
+        await ctx.send("Reproduzindo a próxima faixa da fila")
 
-        vc.resume()
-        await ctx.send("Resuming ⏯️")
+    @next_command.error
+    async def next_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("Isso não pôde ser executado porque a fila está vazia no momento")
+        elif isinstance(exc, NoMoreTracks):
+            await ctx.send("Não há mais faixas na fila")
 
-    @commands.command(name='skip', description="skips to next song in queue")
-    async def skip_(self, ctx):
-        """Skip the song."""
-        vc = ctx.voice_client
+    @commands.command(name="previous")
+    async def previous_command(self, ctx):
+        player = self.get_player(ctx)
 
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
+        if not player.queue.history:
+            raise NoPreviousTracks
 
-        if vc.is_paused():
-            pass
-        elif not vc.is_playing():
-            return
+        player.queue.position -= 2
+        await player.stop()
+        await ctx.send("Reproduzindo a faixa anterior na fila")
 
-        vc.stop()
-    
-    @commands.command(name='remove', aliases=['rm', 'rem'], description="removes specified song from queue")
-    async def remove_(self, ctx, pos : int=None):
-        """Removes specified song from queue"""
+    @previous_command.error
+    async def previous_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("Isso não pôde ser executado porque a fila está vazia no momento")
+        elif isinstance(exc, NoPreviousTracks):
+            await ctx.send("Não há faixas anteriores na fila")
 
-        vc = ctx.voice_client
+    @commands.command(name="shuffle")
+    async def shuffle_command(self, ctx):
+        player = self.get_player(ctx)
+        player.queue.shuffle()
+        await ctx.send("Queue shuffled.")
 
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
+    @shuffle_command.error
+    async def shuffle_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("A fila não pôde ser embaralhada porque está vazia no momento")
+
+    @commands.command(name="repeat", aliases=["loop"])
+    async def repeat_command(self, ctx, mode=None):
+        if mode is None: mode = '1'
+
+        if mode not in ("none",'1', "all"):
+            raise InvalidRepeatMode
 
         player = self.get_player(ctx)
-        if pos == None:
-            player.queue._queue.pop()
-        else:
-            try:
-                s = player.queue._queue[pos-1]
-                del player.queue._queue[pos-1]
-                embed = discord.Embed(title="", description=f"Removed [{s['title']}]({s['webpage_url']}) {s['requester'].mention}", color=discord.Color.green())
+        player.queue.set_repeat_mode(mode)
+        await ctx.send(f"O modo de repetição foi definido para {mode}.")
+
+    @commands.command(name="queue")
+    async def queue_command(self, ctx, show: t.Optional[int] = 10):
+        player = self.get_player(ctx)
+
+        if player.queue.is_empty:
+            raise QueueIsEmpty
+
+        embed = discord.Embed(
+            title="Queue",
+            description=f"Showing up to next {show} tracks",
+            colour=ctx.author.colour,
+            timestamp=dt.datetime.utcnow()
+        )
+        embed.set_author(name="Query Results")
+        embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.avatar_url)
+        embed.add_field(
+            name="Currently playing",
+            value=getattr(player.queue.current_track, "title", "No tracks currently playing."),
+            inline=False
+        )
+        if upcoming := player.queue.upcoming:
+            embed.add_field(
+                name="Next up",
+                value="\n".join(t.title for t in upcoming[:show]),
+                inline=False
+            )
+
+        msg = await ctx.send(embed=embed)
+
+    @queue_command.error
+    async def queue_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("A fila está atualmente vazia")
+
+    # Requests -----------------------------------------------------------------
+
+    @commands.group(name="volume", invoke_without_command=True)
+    async def volume_group(self, ctx, volume: int):
+        player = self.get_player(ctx)
+
+        if volume < 0:
+            raise VolumeTooLow
+
+        if volume > 150:
+            raise VolumeTooHigh
+
+        await player.set_volume(volume)
+        await ctx.send(f"Volume definido para {volume:,}%")
+
+    @volume_group.error
+    async def volume_group_error(self, ctx, exc):
+        if isinstance(exc, VolumeTooLow):
+            await ctx.send("O volume deve ser 0% ou superior")
+        elif isinstance(exc, VolumeTooHigh):
+            await ctx.send("O volume deve ser de 150% ou menos")
+
+    @volume_group.command(name="up")
+    async def volume_up_command(self, ctx):
+        player = self.get_player(ctx)
+
+        if player.volume == 150:
+            raise MaxVolume
+
+        await player.set_volume(value := min(player.volume + 10, 150))
+        await ctx.send(f"Volume definido para {value:,}%")
+
+    @volume_up_command.error
+    async def volume_up_command_error(self, ctx, exc):
+        if isinstance(exc, MaxVolume):
+            await ctx.send("O player já está no volume máximo")
+
+    @volume_group.command(name="down")
+    async def volume_down_command(self, ctx):
+        player = self.get_player(ctx)
+
+        if player.volume == 0:
+            raise MinVolume
+
+        await player.set_volume(value := max(0, player.volume - 10))
+        await ctx.send(f"Volume definido para {value:,}%")
+
+    @volume_down_command.error
+    async def volume_down_command_error(self, ctx, exc):
+        if isinstance(exc, MinVolume):
+            await ctx.send("O player já está no volume mínimo")
+
+    @commands.command(name="lyrics")
+    async def lyrics_command(self, ctx, name: t.Optional[str]):
+        player = self.get_player(ctx)
+        name = name or player.queue.current_track.title
+
+        async with ctx.typing():
+            async with aiohttp.request("GET", LYRICS_URL + name, headers={}) as r:
+                if not 200 <= r.status <= 299:
+                    raise NoLyricsFound
+
+                data = await r.json()
+
+                if len(data["lyrics"]) > 2000:
+                    return await ctx.send(f"<{data['links']['genius']}>")
+
+                embed = discord.Embed(
+                    title=data["title"],
+                    description=data["lyrics"],
+                    colour=ctx.author.colour,
+                    timestamp=dt.datetime.utcnow(),
+                )
+                embed.set_thumbnail(url=data["thumbnail"]["genius"])
+                embed.set_author(name=data["author"])
                 await ctx.send(embed=embed)
-            except:
-                embed = discord.Embed(title="", description=f'Não foi possível encontrar uma faixa para "{pos}"', color=discord.Color.green())
-                await ctx.send(embed=embed)
-    
-    @commands.command(name='clear', aliases=['clr', 'cl', 'cr'], description="clears entire queue")
-    async def clear_(self, ctx):
-        """Deletes entire queue of upcoming songs."""
 
-        vc = ctx.voice_client
+    @lyrics_command.error
+    async def lyrics_command_error(self, ctx, exc):
+        if isinstance(exc, NoLyricsFound):
+            await ctx.send("Nenhuma letra foi encontrada")
 
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-
+    @commands.command(name="eq")
+    async def eq_command(self, ctx, preset: str):
         player = self.get_player(ctx)
-        player.queue._queue.clear()
-        await ctx.send('💣 **Cleared**')
 
-    @commands.command(name='queue', aliases=['q', 'playlist', 'que'], description="shows the queue")
-    async def queue_info(self, ctx):
-        """Retrieve a basic queue of upcoming songs."""
-        vc = ctx.voice_client
+        eq = getattr(wavelink.eqs.Equalizer, preset, None)
+        if not eq:
+            raise InvalidEQPreset
 
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
+        await player.set_eq(eq())
+        await ctx.send(f"Equalizador ajustado para a predefinição {preset}")
 
+    @eq_command.error
+    async def eq_command_error(self, ctx, exc):
+        if isinstance(exc, InvalidEQPreset):
+            await ctx.send("A predefinição de EQ deve ser 'flat', 'boost', 'metal' ou 'piano'")
+
+    @commands.command(name="adveq", aliases=["aeq"])
+    async def adveq_command(self, ctx, band: int, gain: float):
         player = self.get_player(ctx)
-        if player.queue.empty():
-            embed = discord.Embed(title="", description="A fila está vazia", color=discord.Color.green())
-            return await ctx.send(embed=embed)
 
-        seconds = vc.source.duration % (24 * 3600) 
-        hour = seconds // 3600
-        seconds %= 3600
-        minutes = seconds // 60
-        seconds %= 60
-        if hour > 0:
-            duration = "%dh %02dm %02ds" % (hour, minutes, seconds)
-        else:
-            duration = "%02dm %02ds" % (minutes, seconds)
+        if not 1 <= band <= 15 and band not in HZ_BANDS:
+            raise NonExistentEQBand
 
-        # Grabs the songs in the queue...
-        upcoming = list(itertools.islice(player.queue._queue, 0, int(len(player.queue._queue))))
-        fmt = '\n'.join(f"`{(upcoming.index(_)) + 1}.` [{_['title']}]({_['webpage_url']}) | `Requested by: {_['requester']}`\n" for _ in upcoming)
-        fmt = f"\n__Now Playing__:\n[{vc.source.title}]({vc.source.web_url}) | ` {duration} Requested by: {vc.source.requester}`\n\n__Up Next:__\n" + fmt + f"\n**{len(upcoming)} songs in queue**"
-        embed = discord.Embed(title=f'Queue for {ctx.guild.name}', description=fmt, color=discord.Color.green())
-        embed.set_footer(text=f"{ctx.author.display_name}", icon_url=ctx.author.avatar_url)
-        
+        if band > 15:
+            band = HZ_BANDS.index(band) + 1
 
+        if abs(gain) > 10:
+            raise EQGainOutOfBounds
+
+        player.eq_levels[band - 1] = gain / 10
+        eq = wavelink.eqs.Equalizer(levels=[(i, gain) for i, gain in enumerate(player.eq_levels)])
+        await player.set_eq(eq)
+        await ctx.send("Equalizador ajustado")
+
+    @adveq_command.error
+    async def adveq_command_error(self, ctx, exc):
+        if isinstance(exc, NonExistentEQBand):
+            await ctx.send(
+                "Este é um equalizador de 15 bandas -- o número da banda deve estar entre 1 e 15, ou um dos seguintes "
+                "frequências: " + ", ".join(str(b) for b in HZ_BANDS)
+            )
+        elif isinstance(exc, EQGainOutOfBounds):
+            await ctx.send("O ganho de EQ para qualquer banda deve estar entre 10 dB e -10 dB")
+
+    @commands.command(name="playing", aliases=["np"])
+    async def playing_command(self, ctx):
+        player = self.get_player(ctx)
+
+        if not player.is_playing:
+            raise PlayerIsAlreadyPaused
+
+        embed = discord.Embed(
+            title="Now playing",
+            colour=ctx.author.colour,
+            timestamp=dt.datetime.utcnow(),
+        )
+        embed.set_author(name="Playback Information")
+        embed.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.avatar_url)
+        embed.add_field(name="Track title", value=player.queue.current_track.title, inline=False)
+        embed.add_field(name="Artist", value=player.queue.current_track.author, inline=False)
+
+        position = divmod(player.position, 60000)
+        length = divmod(player.queue.current_track.length, 60000)
+        embed.add_field(
+            name="Position",
+            value=f"{int(position[0])}:{round(position[1]/1000):02}/{int(length[0])}:{round(length[1]/1000):02}",
+            inline=False
+        )
 
         await ctx.send(embed=embed)
 
-    @commands.command(name='np', aliases=['song', 'current', 'currentsong', 'playing'], description="shows the current playing song")
-    async def now_playing_(self, ctx):
-        """Display information about the currently playing song."""
-        vc = ctx.voice_client
+    @playing_command.error
+    async def playing_command_error(self, ctx, exc):
+        if isinstance(exc, PlayerIsAlreadyPaused):
+            await ctx.send("Não há nenhuma faixa sendo reproduzida no momento")
 
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-
+    @commands.command(name="skipto", aliases=["playindex"])
+    async def skipto_command(self, ctx, index: int):
         player = self.get_player(ctx)
-        if not player.current:
-            embed = discord.Embed(title="", description="No momento não estou tocando nada", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-        
-        seconds = vc.source.duration % (24 * 3600) 
-        hour = seconds // 3600
-        seconds %= 3600
-        minutes = seconds // 60
-        seconds %= 60
-        if hour > 0:
-            duration = "%dh %02dm %02ds" % (hour, minutes, seconds)
+
+        if player.queue.is_empty:
+            raise QueueIsEmpty
+
+        if not 0 <= index <= player.queue.length:
+            raise NoMoreTracks
+
+        player.queue.position = index - 2
+        await player.stop()
+        await ctx.send(f"Reproduzindo faixa na posição {index}")
+
+    @skipto_command.error
+    async def skipto_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("Não há faixas na fila")
+        elif isinstance(exc, NoMoreTracks):
+            await ctx.send("Esse índice está fora dos limites da fila")
+
+    @commands.command(name="restart")
+    async def restart_command(self, ctx):
+        player = self.get_player(ctx)
+
+        if player.queue.is_empty:
+            raise QueueIsEmpty
+
+        await player.seek(0)
+        await ctx.send("Faixa reiniciada")
+
+    @restart_command.error
+    async def restart_command_error(self, ctx, exc):
+        if isinstance(exc, QueueIsEmpty):
+            await ctx.send("Não há faixas na fila")
+
+    @commands.command(name="seek")
+    async def seek_command(self, ctx, position: str):
+        player = self.get_player(ctx)
+
+        if player.queue.is_empty:
+            raise QueueIsEmpty
+
+        if not (match := re.match(TIME_REGEX, position)):
+            raise InvalidTimeString
+
+        if match.group(3):
+            secs = (int(match.group(1)) * 60) + (int(match.group(3)))
         else:
-            duration = "%02dm %02ds" % (minutes, seconds)
+            secs = int(match.group(1))
 
-        embed = discord.Embed(title="", description=f"[{vc.source.title}]({vc.source.web_url}) [{vc.source.requester.mention}] | `{duration}`", color=discord.Color.green())
-        embed.set_author(icon_url=self.bot.user.avatar_url, name=f"Now Playing 🎶")
-        
-        await ctx.send(embed=embed)
-
-    @commands.command(name='volume', aliases=['vol', 'v'], description="changes Kermit's volume")
-    async def change_volume(self, ctx, *, vol: float=None):
-        """Change the player volume.
-        Parameters
-        ------------
-        volume: float or int [Required]
-            The volume to set the player to in percentage. This must be between 1 and 100.
-        """
-        vc = ctx.voice_client
-
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-        
-        if not vol:
-            embed = discord.Embed(title="", description=f"🔊 **{(vc.source.volume)*100}%**", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-
-        if not 0 < vol < 101:
-            embed = discord.Embed(title="", description="Insira um valor entre 1 e 100", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-
-        player = self.get_player(ctx)
-
-        if vc.source:
-            vc.source.volume = vol / 100
-
-        player.volume = vol / 100
-        embed = discord.Embed(title="", description=f'**`{ctx.author}`** ajuste o volume para **{vol}%**', color=discord.Color.green())
-        await ctx.send(embed=embed)
-
-    @commands.command(name='leave', aliases=["stop", "dc", "disconnect", "bye"], description="stops music and disconnects from voice")
-    async def leave_(self, ctx):
-        """Stop the currently playing song and destroy the player.
-        !Warning!
-            This will destroy the player assigned to your guild, also deleting any queued songs and settings.
-        """
-        vc = ctx.voice_client
-
-        if not vc or not vc.is_connected():
-            embed = discord.Embed(title="", description="Eu não estou em um canal de voz", color=discord.Color.green())
-            return await ctx.send(embed=embed)
-
-        if (random.randint(0, 1) == 0):
-            await ctx.message.add_reaction('👋')
-
-        await self.cleanup(ctx, ctx.guild)
+        await player.seek(secs * 1000)
+        await ctx.send("Seeked.")
 
 
 def setup(bot):
