@@ -1,4 +1,7 @@
 import random
+import json
+import os
+import sys
 from discord.ext import commands
 
 
@@ -79,35 +82,8 @@ class Talks(commands.Cog):
 
     
     def BotDict(self, mode, type) -> list:
-        Dict = {
-            'input': {
-                'laughs': ['hehe', 'hihi', 'haha'],
-
-                'hi' : ['oie', 'oi betozinho', 'olá betozinho', 'ola betozinho'],
-
-                'ibackmoment':['já volto','ja volto',
-
-                'daqui a pouco volto', 'daqui a pouco eu volto'], 
-
-                'ileft':['tchau betozinho','chau betozinho','xau betozinho', 'bye betozinho','baie betozinho',
-                'bai betozinho','vou sair', 'preciso sair', 'tenho que sair'], 
-
-                'sad':['bua',';-;',':(','):',':<','>:','😦','😕','😣',
-                '😓','😔','🙁','☹️','😞','😟','😥','🥲','😢','😭'],
-
-                'smilings':['^^',':b',':p','(:',':)',':>','<:','🙂','😁','😄','😎'],
-            },
-
-            'responses': {
-                'bye':['Tchau {}', 'Baie {}', 'Bai bai {}', 'Bye bye {}', 'Chau {}', 'Xau {}'],
-
-                'sad':['Vai chorar?', '🙁', 'Não fique triste {}', ';-;'],
-
-                'smilings':['^^',':p',':b','(:','🙂','😁','😄','😎']
-
-            }
-
-        }
+        with open(os.path.join(sys.path[0],'dict.json'), encoding='utf-8') as j:
+            Dict = json.load(j)
 
         return Dict[mode][type]
 
