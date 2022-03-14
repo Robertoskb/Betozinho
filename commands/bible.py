@@ -112,4 +112,4 @@ class Request():
 
     
 def setup(bot):
-    bot.add_cog(Bible(bot))
+    bot.add_cog(Bible(bot)) 

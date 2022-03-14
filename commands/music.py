@@ -318,7 +318,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(obj, discord.Guild):
             return self.wavelink.get_player(obj.id, cls=Player)
 
-    @commands.command(name="connect", aliases=["join"])
+    @commands.command(name="join", help='Me conecta em um canal de voz')
     async def connect_command(self, ctx, *, channel: t.Optional[discord.VoiceChannel]):
         player = self.get_player(ctx)
         channel = await player.connect(ctx, channel)
@@ -331,13 +331,13 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(exc, NoVoiceChannel):
             await ctx.send("Nenhum canal de voz adequado foi fornecido")
 
-    @commands.command(name="disconnect", aliases=["leave", "bye"])
+    @commands.command(name="leave", aliases=["disconnect", "bye"], help='Me desconecta do canal de voz')
     async def disconnect_command(self, ctx):
         player = self.get_player(ctx)
         await player.teardown()
         await ctx.send("Desconectado.")
 
-    @commands.command(name="play", aliases=["p"])
+    @commands.command(name="play", aliases=["p"], help='Adiciona uma música à fila')
     async def play_command(self, ctx, *, query: t.Optional[str]):
         player = self.get_player(ctx)
 
@@ -365,7 +365,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(exc, NoVoiceChannel):
             await ctx.send("Nenhum canal de voz adequado foi fornecido")
 
-    @commands.command(name="pause")
+    @commands.command(name="pause", help='Pausa a reprodução')
     async def pause_command(self, ctx):
         player = self.get_player(ctx)
 
@@ -380,14 +380,14 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, PlayerIsAlreadyPaused):
             await ctx.send("Já pausado")
 
-    @commands.command(name="stop")
+    @commands.command(name="stop", help='Para a reprodução')
     async def stop_command(self, ctx):
         player = self.get_player(ctx)
         player.queue.empty()
         await player.stop()
         await ctx.send("A reprodução parou")
 
-    @commands.command(name="next", aliases=["skip"])
+    @commands.command(name="next", aliases=["skip"],help='Reproduz a próxima faixa')
     async def next_command(self, ctx):
         player = self.get_player(ctx)
 
@@ -404,7 +404,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(exc, NoMoreTracks):
             await ctx.send("Não há mais faixas na fila")
 
-    @commands.command(name="previous")
+    @commands.command(name="previous", help='Reproduz a faixa anterior')
     async def previous_command(self, ctx):
         player = self.get_player(ctx)
 
@@ -422,7 +422,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(exc, NoPreviousTracks):
             await ctx.send("Não há faixas anteriores na fila")
 
-    @commands.command(name="shuffle")
+    @commands.command(name="shuffle", help='Embaralha a fila de músicas')
     async def shuffle_command(self, ctx):
         player = self.get_player(ctx)
         player.queue.shuffle()
@@ -433,18 +433,16 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, QueueIsEmpty):
             await ctx.send("A fila não pôde ser embaralhada porque está vazia no momento")
 
-    @commands.command(name="repeat", aliases=["loop"])
-    async def repeat_command(self, ctx, mode=None):
-        if mode is None: mode = '1'
-
-        if mode not in ("none",'1', "all"):
+    @commands.command(name="loop", aliases=["repeat"], help='Ativa o modo de repetição')
+    async def repeat_command(self, ctx, mode='1'):
+        if mode not in ("none", "1", "all"):
             raise InvalidRepeatMode
 
         player = self.get_player(ctx)
         player.queue.set_repeat_mode(mode)
         await ctx.send(f"O modo de repetição foi definido para {mode}.")
 
-    @commands.command(name="queue")
+    @commands.command(name="queue", help='Mostra a fila de músicas')
     async def queue_command(self, ctx, show: t.Optional[int] = 10):
         player = self.get_player(ctx)
 
@@ -480,7 +478,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
 
     # Requests -----------------------------------------------------------------
 
-    @commands.group(name="volume", invoke_without_command=True)
+    @commands.group(name="volume", invoke_without_command=True, help='Altera o volume da reprodução')
     async def volume_group(self, ctx, volume: int):
         player = self.get_player(ctx)
 
@@ -530,7 +528,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, MinVolume):
             await ctx.send("O player já está no volume mínimo")
 
-    @commands.command(name="lyrics")
+    @commands.command(name="lyrics", help='Letra da música')
     async def lyrics_command(self, ctx, name: t.Optional[str]):
         player = self.get_player(ctx)
         name = name or player.queue.current_track.title
@@ -560,7 +558,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, NoLyricsFound):
             await ctx.send("Nenhuma letra foi encontrada")
 
-    @commands.command(name="eq")
+    @commands.command(name="eq", help='')
     async def eq_command(self, ctx, preset: str):
         player = self.get_player(ctx)
 
@@ -576,7 +574,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, InvalidEQPreset):
             await ctx.send("A predefinição de EQ deve ser 'flat', 'boost', 'metal' ou 'piano'")
 
-    @commands.command(name="adveq", aliases=["aeq"])
+    @commands.command(name="adveq", aliases=["aeq"], help='')
     async def adveq_command(self, ctx, band: int, gain: float):
         player = self.get_player(ctx)
 
@@ -604,7 +602,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(exc, EQGainOutOfBounds):
             await ctx.send("O ganho de EQ para qualquer banda deve estar entre 10 dB e -10 dB")
 
-    @commands.command(name="playing", aliases=["np"])
+    @commands.command(name="playing", aliases=["np"], help='Informações sobre a música atual')
     async def playing_command(self, ctx):
         player = self.get_player(ctx)
 
@@ -636,7 +634,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, PlayerIsAlreadyPaused):
             await ctx.send("Não há nenhuma faixa sendo reproduzida no momento")
 
-    @commands.command(name="skipto", aliases=["playindex"])
+    @commands.command(name="skipto", aliases=["playindex"], help='Pula para uma faixa específica')
     async def skipto_command(self, ctx, index: int):
         player = self.get_player(ctx)
 
@@ -657,7 +655,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         elif isinstance(exc, NoMoreTracks):
             await ctx.send("Esse índice está fora dos limites da fila")
 
-    @commands.command(name="restart")
+    @commands.command(name="restart", help='Reinicia a faixa atual')
     async def restart_command(self, ctx):
         player = self.get_player(ctx)
 
@@ -672,7 +670,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
         if isinstance(exc, QueueIsEmpty):
             await ctx.send("Não há faixas na fila")
 
-    @commands.command(name="seek")
+    @commands.command(name="seek", help='')
     async def seek_command(self, ctx, position: str):
         player = self.get_player(ctx)
 
