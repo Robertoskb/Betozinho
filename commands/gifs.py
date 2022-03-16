@@ -15,30 +15,33 @@ class Gifs(commands.Cog):
     async def slap(self, ctx, mention: discord.User=None):
         if mention is None:
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
+            
+            return        
         
-        else:
-            desc = f'**{ctx.author.name}** deu um tapa em **{mention.name}** D:'
-            await self.create_embed(ctx, 'slap', desc)
+        desc = f'**{ctx.author.name}** deu um tapa em **{mention.name}** D:'
+        await self.create_embed(ctx, 'slap', desc)
 
 
     @commands.command(name='hug', help='Dar um abraço no seu amiguinho')
     async def hug(self, ctx, mention: discord.User=None):
         if mention is None:
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
+            
+            return        
         
-        else:
-            desc = f'**{ctx.author.name}** deu um abraço em **{mention.name}**'
-            await self.create_embed(ctx, 'hug', desc)
+        desc = f'**{ctx.author.name}** deu um abraço em **{mention.name}**'
+        await self.create_embed(ctx, 'hug', desc)
     
     
     @commands.command(name='pat', help='Dar um cafuné no seu amiguinho')
     async def pat(self, ctx, mention: discord.User=None):
         if mention is None:
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
+            
+            return        
         
-        else:
-            desc = f'**{ctx.author.name}** deu um cafuné em **{mention.name}** ^^'
-            await self.create_embed(ctx, 'pat', desc)
+        desc = f'**{ctx.author.name}** deu um cafuné em **{mention.name}** ^^'
+        await self.create_embed(ctx, 'pat', desc)
 
     
     @commands.command(name='dance', help='Dançar sozinho ou com o seu amiguinho')
@@ -46,10 +49,11 @@ class Gifs(commands.Cog):
         if mention is None:
             desc = f'**{ctx.author.name}** dançou ^^'
             await self.create_embed(ctx, 'dance', desc)
+            
+            return        
         
-        else:
-            desc = f'**{ctx.author.name}** dançou com **{mention.name}** ^^'
-            await self.create_embed(ctx, 'dance', desc)
+        desc = f'**{ctx.author.name}** dançou com **{mention.name}** ^^'
+        await self.create_embed(ctx, 'dance', desc)
 
 
     async def create_embed(self, ctx, type, desc):
@@ -59,13 +63,10 @@ class Gifs(commands.Cog):
         embed.set_image(url=request['response'])
     
         await ctx.channel.send(embed=embed)
+    
 
-
-    @dance.error
-    @pat.error
-    @hug.error
-    @slap.error
-    async def error(self, ctx, error):
+    @commands.Cog.listener()
+    async def on_command_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):
             print(error)
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
