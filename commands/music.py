@@ -305,7 +305,7 @@ class Music(commands.Cog, wavelink.WavelinkMixin):
             'rest_uri': f'http://lava.link:80',
             'identifier': 'MAIN',
             'password': 'anything',
-            'region': 'singapore', 
+            'region': 'south-america', 
     }
         }
 

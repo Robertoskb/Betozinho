@@ -41,7 +41,7 @@ class Request():
     def translator(self, book):
         book = book.lower()
 
-        erro = self._transerro()
+        erro = self.transerro()
         tr = Translator()
 
         if book in erro: book = erro[book]  
@@ -53,9 +53,10 @@ class Request():
         request = requests.get(
         f'https://bible-api.com/{self.book}+{self.chapter_verse}?translation=almeida&verse_numbers=true').json()
 
-        self._CheckRequest(request)
+        self.CheckRequest(request)
 
-    def _transerro(self):
+
+    def transerro(self):
         '''Mesmo usando uma bibliteca do Google Tradutor, 
         alguns dos livros não tinham seus nome traduzidos corretamente,
         Esse método faz a tradução correta dos nomes para a API'''
@@ -73,7 +74,7 @@ class Request():
         return dict
 
 
-    def _CheckRequest(self, request):
+    def CheckRequest(self, request):
         '''Checa se o request foi bem sucedido'''
 
         if 'text' in request:
@@ -81,20 +82,24 @@ class Request():
             self.CreateEmbeds(textlist, request)
                        
         else:
-            file = discord.File('images/betozinho_bah.jpeg', filename='betozinho_bah.jpeg')
+            self.embederro()
             
-            embed = discord.Embed(
-                    title="Não Encontrado", 
-                    description="Verifique se você digitou ``-b Livro Capítulo:Versículo`` corretamente", 
-                    color=discord.Color.green()
-                    )
 
-            embed.set_thumbnail(url='attachment://betozinho_bah.jpeg')
- 
-            self.create_task(self.ctx.channel.send(embed=embed, file=file, 
-            reference=self.ctx.message, mention_author=False))
+    def embederro(self):
+        file = discord.File('images/betozinho_bah.jpeg', filename='betozinho_bah.jpeg')
 
-    
+        embed = discord.Embed(
+                title="Não Encontrado", 
+                description="Verifique se você digitou ``-b Livro Capítulo:Versículo`` corretamente", 
+                color=discord.Color.green())
+
+        
+        embed.set_thumbnail(url='attachment://betozinho_bah.jpeg')
+
+        self.create_task(self.ctx.channel.send(embed=embed, file=file, 
+        reference=self.ctx.message, mention_author=False))
+
+
     def CreateEmbeds(self, textlist, request):
         '''Envia versículos como mensagem no discord, a cada 25 versículos é 
            criada uma nova mensagem por conta da limitção de caracteres'''
@@ -109,6 +114,7 @@ class Request():
             embed.set_author(name=request['reference'], icon_url=self.ctx.author.avatar_url)
 
             self.create_task(self.ctx.channel.send(embed=embed))
+
 
 def setup(bot):
     bot.add_cog(Bible(bot)) 
