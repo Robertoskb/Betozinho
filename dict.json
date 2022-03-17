@@ -1,4 +1,7 @@
 {"input" : {
+        
+        "uuu" : ["uuu"],
+        "mua" : ["mua"],
         "laughs": ["hehe", "hihi", "haha"],
 
         "hi" : ["oie", "oi betozinho", "olá betozinho", "ola betozinho"],
@@ -19,7 +22,17 @@
 
         "sad":["Vai chorar?", "🙁", "Não fique triste {}", ";-;"],
 
-        "smilings":["^^",":p",":b","(:","🙂","😁","😄","😎"]
+        "smilings":["^^",":p",":b","(:","🙂","😁","😄","😎"],
+
+        "laughs": ["hehe"],
+        
+        "mua": ["muaa"],
+
+        "ibackmoment": ["ok"],
+        
+        "hi": ["Oie, {} ^^"],
+        
+        "uuu": ["uuuu {} 👀"]
 
     }
 } 

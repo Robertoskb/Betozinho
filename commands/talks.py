@@ -12,34 +12,28 @@ class Talks(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.send = None
-        self.message = None
-        self.create_task = self.bot.loop.create_task
 
 
     @commands.Cog.listener()
     async def on_message(self, message) -> None:
         if message.author == self.bot.user: return
 
-        self.message = message
-        self.send = lambda rsp: message.channel.send(
-        rsp, reference=message, mention_author=False)
         
-        self.Response()
+        await self.Response(message)
         
 
-    def Response(self):
-        msgtype = self.MsgType()
-        events = self.Responses()
+    async def Response(self, message):
+        msgtype = self.MsgType(message)
+        events = self.Responses(message)
         
         if msgtype in events:
-            return self.create_task(self.send(events[msgtype]))
+            await message.reply(events[msgtype], mention_author=False)
             
                 
-    def MsgType(self) -> str:
-        typesdict = self.TypeNames()
+    def MsgType(self, message) -> str:
+        typesdict = self.BotDict('input')
 
-        msg = self.message.content.lower()
+        msg = message.content.lower()
         
         msgtype = ''
         for k, v in typesdict.items():
@@ -49,43 +43,21 @@ class Talks(commands.Cog):
         return msgtype
 
     
-    def Responses(self) -> dict:
-        Random = lambda m, t: random.choice(self.BotDict(m, t)).format(self.message.author.name)
+    def Responses(self, message) -> dict:
+        Dict = self.BotDict('responses') 
 
-        events = {
-            'laughs': 'hehe',
-            'mua': 'muaa',
-            'smilings' : Random('responses','smilings'),
-            'ibackmoment': 'ok',
-            'ileft': Random('responses','bye'),
-            'sad': Random('responses','sad'),
-            'hi': f'Oie, {self.message.author.name} ^^',
-            'uuu': f'uuuu {self.message.author.name} 👀'
-        }
-        
-        return events            
-
-    def TypeNames(self) -> dict:
-
-        Dict = {
-            'uuu' : ['uuu'],
-            'mua' : ['mua'],
-            'laughs': self.BotDict('input','laughs'),
-            'hi' : self.BotDict('input','hi'),
-            'ibackmoment' : self.BotDict('input','ibackmoment'),
-            'ileft' : self.BotDict('input','ileft'),
-            'sad' : self.BotDict('input','sad'),
-            'smilings' : self.BotDict('input','smilings'),          
-        }
+        f = message.author.name
+        for k, v in Dict.items():
+            Dict[k] = random.choice(v).format(f)
 
         return Dict
 
     
-    def BotDict(self, mode, type) -> list:
+    def BotDict(self, mode:str) -> dict:
         with open(os.path.join(sys.path[0],'dict.json'), encoding='utf-8') as j:
             Dict = json.load(j)
 
-        return Dict[mode][type]
+        return Dict[mode]
 
 
 def setup(bot):
