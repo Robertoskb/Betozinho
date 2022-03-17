@@ -19,5 +19,5 @@ bot.load_extension('commands.bible')
 bot.load_extension('commands.help')
 bot.load_extension('commands.gifs')
 
-TOKEN = config("TOKEN1")
+TOKEN = config("TOKEN")
 bot.run(TOKEN)
