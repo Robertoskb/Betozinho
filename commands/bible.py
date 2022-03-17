@@ -1,5 +1,3 @@
-# https://bible-api.com/BOOK+CHAPTER:VERSE?translation=almeida
-
 import requests
 import discord
 from discord.ext import commands
@@ -12,6 +10,7 @@ class Bible(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
     
     @commands.command(name='bible', help='Mostra versículos da Bíblia', aliases=['b'], description="-b Livro Capítulo:Versículo")
     async def bible(self, ctx, book = None, chapter_verse = None):
@@ -22,21 +21,10 @@ class Bible(commands.Cog):
             reference = ctx.message, mention_author = False)
         
         else:
-            response = Request(self.bot, ctx, book, chapter_verse)
-            response.request()
+            book = self.translator(book)
+            request = self.request(book, chapter_verse)
+            await self.CheckRequest(ctx, request)
 
-
-class Request():
-    
-    __slots__ = ('bot', 'ctx', 'book', 'chapter_verse', 'create_task')
-
-    def __init__(self, bot, ctx, book, chapter_verse):
-        self.bot = bot
-        self.ctx = ctx
-        self.book = self.translator(book)
-        self.chapter_verse = chapter_verse
-        self.create_task = self.bot.loop.create_task
-        
     
     def translator(self, book):
         book = book.lower()
@@ -49,11 +37,12 @@ class Request():
         
         return book
 
-    def request(self):
-        request = requests.get(
-        f'https://bible-api.com/{self.book}+{self.chapter_verse}?translation=almeida&verse_numbers=true').json()
 
-        self.CheckRequest(request)
+    def request(self, book, chapter_verse):
+        request = requests.get(f'https://bible-api.com/{book}+{chapter_verse}?translation=almeida&verse_numbers=true')
+        request = request.json()
+        
+        return request
 
 
     def transerro(self):
@@ -61,31 +50,30 @@ class Request():
         alguns dos livros não tinham seus nome traduzidos corretamente,
         Esse método faz a tradução correta dos nomes para a API'''
 
-        dict = {
+        dict = {   
             "rute": "RUT", "1reis": "1KI", "2reis": "2KI;", "1crônicas": "1CH",
             "2crônicas": "2CH", "jó": "JOB", "salmos": "PSA","eclesiastes": "ECC",
             "cânticos": "SNG", "oseias": "HOS", "naum": "NAM","ageu": "HAG",
             "1coríntios": "1CO", "2coríntios": "2CO", "efésios": "EPH",
             "filipenses": "PHP", "1tessalonicenses": "1TH", "2tessalonicenses": "2TH",
             "1timóteo": "1TI", "2timóteo": "2TI",
-            "1joão": "1JN", "2joão": "2JN","3joão": "3JN"
-        }
+            "1joão": "1JN", "2joão": "2JN","3joão": "3JN"}
 
         return dict
 
 
-    def CheckRequest(self, request):
+    def CheckRequest(self, ctx, request):
         '''Checa se o request foi bem sucedido'''
 
         if 'text' in request:
             textlist = request['text'].split('\xa0 \xa0')
-            self.CreateEmbeds(textlist, request)
+            return self.CreateEmbeds(ctx, textlist, request)
                        
         else:
-            self.embederro()
+            return self.embederro(ctx)
             
 
-    def embederro(self):
+    async def embederro(self, ctx):
         file = discord.File('images/betozinho_bah.jpeg', filename='betozinho_bah.jpeg')
 
         embed = discord.Embed(
@@ -96,11 +84,10 @@ class Request():
         
         embed.set_thumbnail(url='attachment://betozinho_bah.jpeg')
 
-        self.create_task(self.ctx.channel.send(embed=embed, file=file, 
-        reference=self.ctx.message, mention_author=False))
+        await ctx.reply(embed=embed, file=file, mention_author=False)
 
 
-    def CreateEmbeds(self, textlist, request):
+    async def CreateEmbeds(self, ctx, textlist, request):
         '''Envia versículos como mensagem no discord, a cada 25 versículos é 
            criada uma nova mensagem por conta da limitção de caracteres'''
 
@@ -111,9 +98,9 @@ class Request():
             response = '\n\n'.join(list)
             
             embed = discord.Embed(description=response, color = 0x00B115)
-            embed.set_author(name=request['reference'], icon_url=self.ctx.author.avatar_url)
+            embed.set_author(name=request['reference'], icon_url=ctx.author.avatar_url)
 
-            self.create_task(self.ctx.channel.send(embed=embed))
+            await ctx.channel.send(embed=embed)
 
 
 def setup(bot):
