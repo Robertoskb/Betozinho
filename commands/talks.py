@@ -8,8 +8,6 @@ from discord.ext import commands
 class Talks(commands.Cog):
     """Talks with user"""
 
-    __slots__ = ('bot', 'send', 'message', 'create_task')
-
     def __init__(self, bot):
         self.bot = bot
 
