@@ -18,11 +18,10 @@ class Talks(commands.Cog):
     async def on_message(self, message) -> None:
         if message.author == self.bot.user: return
 
-        
-        await self.Response(message)
+        await self.Raply(message)
         
 
-    async def Response(self, message):
+    async def Raply(self, message):
         msgtype = self.MsgType(message)
         events = self.Responses(message)
         
