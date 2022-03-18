@@ -46,7 +46,7 @@ class Talks(commands.Cog):
             for i in v:
                 if f'"{i}"' in msg or f"'{i}'"in msg: continue
                 if i in msg: msgtype = k 
-                # Se a string da mensagem recebida conter uma string de uma chave 
+                # Se alguma string da lista de uma chave estiver na mensagem
                 # O tipo da mensagem terá o valor da chave 
 
 
