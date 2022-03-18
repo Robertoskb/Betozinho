@@ -35,6 +35,7 @@ class Talks(commands.Cog):
         msgtype = ''
         for k, v in typesdict.items():
             for c, i in enumerate(typesdict[k]):
+                if f'"{i}"' in msg or f"'{i}'"in msg: continue
                 if i in msg: msgtype = k
 
         return msgtype
