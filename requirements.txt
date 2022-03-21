@@ -10,3 +10,4 @@ pynacl
 ffmpeg
 googletrans==4.0.0rc1 
 discord-custom-help==0.0.6
+pillow

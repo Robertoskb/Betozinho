@@ -49,7 +49,6 @@ class Talks(commands.Cog):
                 # Se alguma string da lista de uma chave estiver na mensagem
                 # O tipo da mensagem terá o valor da chave 
 
-
         return msgtype
 
     
