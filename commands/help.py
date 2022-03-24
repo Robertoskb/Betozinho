@@ -1,5 +1,4 @@
 import discord
-import math
 from discord.ext import commands
 
 class Help(commands.Cog):
@@ -7,45 +6,65 @@ class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='help', aliases=['h', 'commands'], help='The help command!')
-    async def help(self, ctx, cog='1'):
-        embed = discord.Embed(
-            title='Help Commands!',
-            color=0x00B115)
+    @commands.command(name='help', aliases=['h'], help='The help command!', description='[command]')
+    async def help(self, ctx, command_name=None):
+        embed = discord.Embed(title='Help Commands!', color=0x00B115)
 
-        cogs = [c for c in self.bot.cogs.keys()]
-        cogs.remove('Talks')
+        if command_name is None: embed = self.commandList(embed)
+        else: embed = self.especificCommand(embed, command_name)
+        
+        await ctx.channel.send(embed=embed)
 
-        totalPages = math.ceil(len(cogs) / 4)
-
-        cog = int(cog)
-        if totalPages < cog or cog < 1:
-            await ctx.send(f'Número da página inválido: `{cog}`')
-            return
-
-        neededCogs = []
-        for i in range(4):
-            x = i + (int(cog) - 1) * 4
-
-            try: neededCogs.append(cogs[x])
-            except IndexError: pass
-
+    def commandList(self, embed:discord.Embed) -> discord.Embed:
+        cogs = self.cogs()
+        neededCogs = [c for c in cogs]
 
         for cog in neededCogs:
-            commandList = ""
+            embed.add_field(name=cog, value=self.bot.cogs[cog].__doc__)
+        embed.add_field(name='Help', value='**-help [Categoria]**', inline=False)     
+
+        return embed
+
+    def especificCommand(self, embed:discord.Embed, command_name:str) -> discord.Embed:
+        cogs = self.cogs()
+        neededCogs = [c for c in cogs]
+        embed.title = ''
+
+        commandhelp = ""
+        for cog in neededCogs:
             for command in self.bot.get_cog(cog).walk_commands():
                 if command.hidden: continue
-                elif command.parent != None: continue
-                
-                if command.help == '': command.help = '...' 
+                if command.parent != None: continue
 
-                commandList += f'**-{command.name}**    *{command.help}*\n'
-            commandList += '\n'
+                if command.name == command_name:
+                    commandhelp = f'**-{command.name}  {command.description}**'
+                    embed.add_field(name=cog, value=f"{commandhelp}", inline=False)
+                    
+                    return embed
+        
+        return self.especificCog(neededCogs, embed, command_name)
+    
+    def especificCog(self, neededCogs:list, embed:discord.Embed, cog_name:str) -> discord.Embed:
+        commandList = ""
+        for cog in neededCogs:
+            if cog_name == cog:
+                for command in self.bot.get_cog(cog).walk_commands():
+                    if command.hidden: continue
+                    if command.parent != None: continue
 
+                    commandList += f'**-{command.name}**  *{command.help}*\n'
+        
+        embed.add_field(name=cog_name, value=commandList, inline=False)
+        embed.add_field(name='Help', value='**-help [comando]**', inline=False)     
 
-            embed.add_field(name=cog, value=f"{commandList}", inline=False)
+        return embed
 
-        await ctx.channel.send(embed=embed)  
+    def cogs(self) -> list:
+        cogs = [c for c in self.bot.cogs.keys()]
+        remove = ['Talks', 'Help']
+        for r in remove: cogs.remove(r)
+
+        return cogs
 
 
 def setup(bot):

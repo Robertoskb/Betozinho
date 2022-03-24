@@ -7,11 +7,13 @@ KAWAII:str = config('kawaii')
 
 
 class Gifs(commands.Cog):
+    '''Gifs'''
+
     def __init__(self, bot):
         self.bot = bot
         
 
-    @commands.command(name='slap', help='Dar um tapa no seu amiguinho')
+    @commands.command(name='slap', help='Dar um tapa no seu amiguinho', description='@user')
     async def slap(self, ctx, mention: discord.User=None):
         if mention is None:
             return await ctx.reply('Você precisa mencionar alguém', mention_author=False)      
@@ -21,7 +23,7 @@ class Gifs(commands.Cog):
         await self.create_embed(ctx, 'slap', desc)
 
 
-    @commands.command(name='hug', help='Dar um abraço no seu amiguinho')
+    @commands.command(name='hug', help='Dar um abraço no seu amiguinho', description='@user')
     async def hug(self, ctx, mention: discord.User=None):
         if mention is None:
             return await ctx.reply('Você precisa mencionar alguém', mention_author=False)
@@ -31,7 +33,7 @@ class Gifs(commands.Cog):
         await self.create_embed(ctx, 'hug', desc)
     
     
-    @commands.command(name='pat', help='Dar um cafuné no seu amiguinho')
+    @commands.command(name='pat', help='Dar um cafuné no seu amiguinho', description='@user')
     async def pat(self, ctx, mention: discord.User=None):
         if mention is None:
             return await ctx.reply('Você precisa mencionar alguém', mention_author=False)        
@@ -41,19 +43,19 @@ class Gifs(commands.Cog):
         await self.create_embed(ctx, 'pat', desc)
 
 
-    @commands.command(name='amazing', help='Incrível')
+    @commands.command(name='amazing', help='Incrível', description='sem argumentos')
     async def amazing(self, ctx):
         desc = f'**{ctx.author.name}** ^^'
         await self.create_embed(ctx, 'Amazing', desc)
 
     
-    @commands.command(name='cry', help='Vai chorar?')
+    @commands.command(name='cry', help='Vai chorar?', description='sem argumentos')
     async def cry(self, ctx):
         desc = f'**{ctx.author.name}** está chorando :<'
         await self.create_embed(ctx, 'cry', desc)
 
     
-    @commands.command(name='coffee', help='Cafézinho')
+    @commands.command(name='coffee', help='Cafézinho', description='@user')
     async def coffe(self, ctx, mention: discord.User=None):
         if mention is None:
             desc = f"**{ctx.author.name}** está tomando café"
@@ -64,19 +66,19 @@ class Gifs(commands.Cog):
         await self.create_embed(ctx, 'coffee', desc)
 
     
-    @commands.command(name='cute', help='Cute')
+    @commands.command(name='cute', help='Cute', description='sem argumentos')
     async def cute(self, ctx):
         desc = f"**{ctx.author.name}** ^^"
         await self.create_embed(ctx, 'cute', desc)
 
     
-    @commands.command(name='error', help='Erro')
+    @commands.command(name='error', help='Erro', description='@user')
     async def error(self, ctx):
         desc = f"**{ctx.author.name}** bugou"
         await self.create_embed(ctx, 'error', desc)
 
 
-    @commands.command(name='scream', help='Gritar sozinho ou com o amiguinho')
+    @commands.command(name='scream', help='Gritar sozinho ou com o amiguinho', description='@user')
     async def scream(self, ctx, mention: discord.User=None):
         if mention is None:
             desc = f"**{ctx.author.name}** gritou D:"
@@ -87,7 +89,7 @@ class Gifs(commands.Cog):
         await self.create_embed(ctx, 'scream', desc)
 
     
-    @commands.command(name='dance', help='Dançar sozinho ou com o seu amiguinho')
+    @commands.command(name='dance', help='Dançar sozinho ou com o seu amiguinho', description='@user')
     async def dance(self, ctx, mention: discord.User=None):
         if mention is None:
             desc = f'**{ctx.author.name}** dançou ^^'

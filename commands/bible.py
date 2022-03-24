@@ -4,7 +4,7 @@ from discord.ext import commands
 from googletrans import Translator
 
 class Bible(commands.Cog):
-    '''Mostra Versículos da Bíblia atravez de um comando'''
+    '''Bíblia'''
 
     __slots__ = ('bot')
 
@@ -12,7 +12,7 @@ class Bible(commands.Cog):
         self.bot = bot
 
     
-    @commands.command(name='bible', help='Mostra versículos da Bíblia', aliases=['b'], description="-b Livro Capítulo:Versículo")
+    @commands.command(name='bible', help='Mostra versículos da Bíblia', aliases=['b'], description="Livro Capítulo:Versículo")
     async def bible(self, ctx, book = None, chapter_verse = None):
         none = book == None or chapter_verse == None
         
