@@ -17,9 +17,8 @@ class Help(commands.Cog):
 
     def commandList(self, embed:discord.Embed) -> discord.Embed:
         cogs = self.cogs()
-        neededCogs = [c for c in cogs]
 
-        for cog in neededCogs:
+        for cog in cogs:
             embed.add_field(name=cog, value=self.bot.cogs[cog].__doc__)
         embed.add_field(name='Help', value='**-help [Categoria]**', inline=False)     
 
@@ -27,11 +26,10 @@ class Help(commands.Cog):
 
     def especificCommand(self, embed:discord.Embed, command_name:str) -> discord.Embed:
         cogs = self.cogs()
-        neededCogs = [c for c in cogs]
         embed.title = ''
 
         commandhelp = ""
-        for cog in neededCogs:
+        for cog in cogs:
             for command in self.bot.get_cog(cog).walk_commands():
                 if command.hidden: continue
                 if command.parent != None: continue
@@ -42,17 +40,15 @@ class Help(commands.Cog):
                     
                     return embed
         
-        return self.especificCog(neededCogs, embed, command_name)
+        return self.especificCog(embed, command_name)
     
-    def especificCog(self, neededCogs:list, embed:discord.Embed, cog_name:str) -> discord.Embed:
+    def especificCog(self, embed:discord.Embed, cog_name:str) -> discord.Embed:
         commandList = ""
-        for cog in neededCogs:
-            if cog_name == cog:
-                for command in self.bot.get_cog(cog).walk_commands():
-                    if command.hidden: continue
-                    if command.parent != None: continue
+        for command in self.bot.get_cog(cog_name).walk_commands():
+            if command.hidden: continue
+            if command.parent != None: continue
 
-                    commandList += f'**-{command.name}**  *{command.help}*\n'
+            commandList += f'**-{command.name}**  *{command.help}*\n'
         
         embed.add_field(name=cog_name, value=commandList, inline=False)
         embed.add_field(name='Help', value='**-help [comando]**', inline=False)     

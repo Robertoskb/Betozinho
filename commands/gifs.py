@@ -72,7 +72,7 @@ class Gifs(commands.Cog):
         await self.create_embed(ctx, 'cute', desc)
 
     
-    @commands.command(name='error', help='Erro', description='@user')
+    @commands.command(name='error', help='Erro', description='sem argumentos')
     async def error(self, ctx):
         desc = f"**{ctx.author.name}** bugou"
         await self.create_embed(ctx, 'error', desc)
