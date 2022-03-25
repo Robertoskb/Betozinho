@@ -39,7 +39,8 @@ class Bible(commands.Cog):
 
 
     def request(self, book, chapter_verse):
-        request = requests.get(f'https://bible-api.com/{book}+{chapter_verse}?translation=almeida&verse_numbers=true')
+        link = f'https://bible-api.com/{book}+{chapter_verse}?translation=almeida&verse_numbers=true'
+        request = requests.get(link)
         request = request.json()
         
         return request
@@ -75,10 +76,11 @@ class Bible(commands.Cog):
 
     async def embederro(self, ctx):
         file = discord.File('images/betozinho_bah.jpeg', filename='betozinho_bah.jpeg')
+        descr = "Verifique se você digitou ``-b Livro Capítulo:Versículo`` corretamente"
 
         embed = discord.Embed(
                 title="Não Encontrado", 
-                description="Verifique se você digitou ``-b Livro Capítulo:Versículo`` corretamente", 
+                description=descr, 
                 color=discord.Color.green())
 
         

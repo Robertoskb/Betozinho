@@ -65,7 +65,7 @@ class Talks(commands.Cog):
     
     def BotDict(self, mode:str) -> dict:
         # Retorna um dicinário específico de um json
-        with open(os.path.join(sys.path[0],'dict.json'), encoding='utf-8') as j:
+        with open(os.path.join(sys.path[0],'dicts/dictfortalks.json'), encoding='utf-8') as j:
             Dict = json.load(j)
 
         return Dict[mode]

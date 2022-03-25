@@ -14,9 +14,9 @@ async def on_ready():
     print('Estou Pronto!')
 
 bot.load_extension('commands.talks')
-bot.load_extension('commands.music')
 bot.load_extension('commands.bible')
 bot.load_extension('commands.gifs')
+bot.load_extension('commands.smart')
 
 bot.load_extension('commands.help')
 
