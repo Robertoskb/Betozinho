@@ -17,22 +17,105 @@ class Bible(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.command(name='books', help='Mostra os livros da Bíblia', description="opcionalmente VT ou NT")
+    async def books(self, ctx, testament:str=None):
+        
+        if testament is None:
+            embed = self.get_books()
+        
+        elif testament.upper() in ['VT', 'NT']:
+            embed = self.especificBooks(testament.upper())
+        
+        else:
+            response = 'Tente digitar **-books** e opcionalmente **VT ou NT**'
+            return await ctx.reply(response, mention_author=False)
+
+        await ctx.reply(embed=embed, mention_author=False)
+
+    
+    def get_books(self) -> discord.Embed:
+        books = self.get_request(f'{API}/books')
+
+        vt = nt = ''
+        for book in books:
+            if book['testament'] == 'VT':
+                vt += f'{book["name"]}\n'
+            else: 
+                nt += f'{book["name"]}\n'
+        
+        embed = discord.Embed(color=0x00B115)
+        embed.add_field(name='Antigo Testamento', value=vt)
+        embed.add_field(name='Novo Testamento', value=nt)
+
+        return embed
+
+    
+    def especificBooks(self, testament) -> discord.Embed:
+        books = self.get_request(f'{API}/books')
+        testaments = {'VT':'Antigo Testamento', 'NT':'Novo Testamento'}
+
+        value = ''
+        for book in books:
+            if book['testament'] == testament:
+                value += f'{book["name"]}\n'
+
+        embed = discord.Embed(color=0x00B115)
+        embed.add_field(name=testaments[testament], value=value)
+
+        return embed
+        
+    
+    @commands.command(name='book', help='Informações de um livro Bíblia', description="Livro")
+    async def book(self, ctx, book:str=''):
+        
+        book = unidecode(book).lower()
+        books = self.BibleBooks()
+
+        if book in books:
+            abbrev = books[book]
+            embed = self.bookInfos(abbrev)
+
+            await ctx.reply(embed=embed, mention_author=False)
+        
+        else:
+            response = 'Tente digitar **-book Livro** corretamente'
+            
+            await ctx.reply(response, mention_author=False)
+            
+    
+    def bookInfos(self, abbrev) -> discord.Embed:
+        book = self.get_request(f'{API}/books/{abbrev}')
+        testaments = {'VT':'Antigo Testamento', 'NT':'Novo Testamento'}
+
+        embed = discord.Embed(color=0x00B115)
+        
+        embed.add_field(name='Livro', value=book['name'], inline=False)
+        embed.add_field(name='Testamento', value=testaments[book['testament']], inline=False)
+        embed.add_field(name='Grupo', value=book['group'], inline=False)
+        embed.add_field(name='Capítulos', value=f"{book['chapters']} caps")
+        embed.add_field(name='Autor', value=book['author'])
+
+        return embed
+
 
     @commands.command(name='verse', help='Mostra versículos da Bíblia', description="Livro Capítulo:Versículo")
     async def verse(self, ctx, book:str='', chapter_verse:str=''):
         book = unidecode(book).lower()
-        pattern = self.check_pattern('.:.', chapter_verse)
 
-        if book in self.BibleBooks() and pattern:
-            abbrev = self.BibleBooks()[book]
+        pattern = bool(re.compile('.:.').findall(chapter_verse))
+
+        books  = self.BibleBooks()
+
+        if book in books and pattern:
+            abbrev = books[book]
             embed = self.get_verse(abbrev, chapter_verse)
 
-            await ctx.reply(embed=embed, mention_author = False)
+            await ctx.reply(embed=embed, mention_author=False)
 
         else:
-            response = 'Por favor, tente digitar **-verse Livro Capítulo:Versículo** corretamente'
+            response = 'Tente digitar **-verse Livro Capítulo:Versículo** corretamente'
 
-            await ctx.reply(response, mention_author = False)
+            await ctx.reply(response, mention_author=False)
 
         
     def get_verse(self, abbrev:str, cv:str) -> discord.Embed:
@@ -46,42 +129,24 @@ class Bible(commands.Cog):
         
         else:
             title = "Nada encontrado"
-            descr = "Verifique se você digitou **-verse Livro Capítulo:Versículos** existentes"
+            descr = "Verifique se você digitou **Capítulo:Versículo** existentes"
 
         embed = discord.Embed(title=title, description=descr, color=0x00B115)
         
         return embed
 
 
-    def check_pattern(self, pattern:str, text:str) -> bool:
-        return bool(re.compile(pattern).findall(text))
-
-
     def get_request(self, url:str) -> dict:
-        return requests.get(url, headers={'Authorization': 'Beare {}'.format(BIBLE)}).json()
+        headers = {'Authorization': f'Beare {BIBLE}'}
+        return requests.get(url, headers=headers).json()
 
 
-    def BibleBooks(self) -> str:
+    def BibleBooks(self) -> dict:
         arq = os.path.join(sys.path[0],'dicts/dictforbible.json')
         with open(arq, encoding='utf-8') as j:
             Dict = json.load(j)
 
         return Dict
-
-    # async def CreateEmbeds(self, ctx, textlist, request):
-    #     '''Envia versículos como mensagem no discord, a cada 25 versículos é 
-    #        criada uma nova mensagem por conta da limitção de caracteres'''
-
-    #     limit = 25
-    #     newtextlist = [textlist[i:i + limit] for i in range(0, len(textlist), limit)]
-
-    #     for list in newtextlist:
-    #         response = '\n\n'.join(list)
-            
-    #         embed = discord.Embed(description=response, color = 0x00B115)
-    #         embed.set_author(name=request['reference'], icon_url=ctx.author.avatar_url)
-
-    #         await ctx.channel.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Bible(bot)) 
