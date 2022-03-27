@@ -1,109 +1,87 @@
 import requests
 import discord
+import re
+import sys
+import os
+import json
 from discord.ext import commands
-from googletrans import Translator
+from decouple import config
+from unidecode import unidecode
+
+BIBLE = config('bible')
+API = "https://www.abibliadigital.com.br/api"
 
 class Bible(commands.Cog):
     '''Bíblia'''
 
-    __slots__ = ('bot')
-
     def __init__(self, bot):
         self.bot = bot
 
-    
-    @commands.command(name='bible', help='Mostra versículos da Bíblia', aliases=['b'], description="Livro Capítulo:Versículo")
-    async def bible(self, ctx, book = None, chapter_verse = None):
-        none = book == None or chapter_verse == None
-        
-        if none:
-            await ctx.channel.send('Por favor, tente digitar ``-b Livro Capítulo:Versículo``', 
-            reference = ctx.message, mention_author = False)
-        
+
+    @commands.command(name='verse', help='Mostra versículos da Bíblia', description="Livro Capítulo:Versículo")
+    async def verse(self, ctx, book:str='', chapter_verse:str=''):
+        book = unidecode(book).lower()
+        pattern = self.check_pattern('.:.', chapter_verse)
+
+        if book in self.BibleBooks() and pattern:
+            abbrev = self.BibleBooks()[book]
+            embed = self.get_verse(abbrev, chapter_verse)
+
+            await ctx.reply(embed=embed, mention_author = False)
+
         else:
-            book = self.translator(book)
-            request = self.request(book, chapter_verse)
-            await self.CheckRequest(ctx, request)
+            response = 'Por favor, tente digitar **-verse Livro Capítulo:Versículo** corretamente'
 
-    
-    def translator(self, book):
-        book = book.lower()
+            await ctx.reply(response, mention_author = False)
 
-        erro = self.transerro()
-        tr = Translator()
-
-        if book in erro: book = erro[book]  
-        else: book = tr.translate(book).text
         
-        return book
-
-
-    def request(self, book, chapter_verse):
-        link = f'https://bible-api.com/{book}+{chapter_verse}?translation=almeida&verse_numbers=true'
-        request = requests.get(link)
-        request = request.json()
-        
-        return request
-
-
-    def transerro(self):
-        '''Mesmo usando uma bibliteca do Google Tradutor, 
-        alguns dos livros não tinham seus nome traduzidos corretamente,
-        Esse método faz a tradução correta dos nomes para a API'''
-
-        dict = {   
-            "rute": "RUT", "1reis": "1KI", "2reis": "2KI;", "1crônicas": "1CH",
-            "2crônicas": "2CH", "jó": "JOB", "salmos": "PSA","eclesiastes": "ECC",
-            "cânticos": "SNG", "oseias": "HOS", "naum": "NAM","ageu": "HAG",
-            "1coríntios": "1CO", "2coríntios": "2CO", "efésios": "EPH",
-            "filipenses": "PHP", "1tessalonicenses": "1TH", "2tessalonicenses": "2TH",
-            "1timóteo": "1TI", "2timóteo": "2TI",
-            "1joão": "1JN", "2joão": "2JN","3joão": "3JN"}
-
-        return dict
-
-
-    def CheckRequest(self, ctx, request):
-        '''Checa se o request foi bem sucedido'''
+    def get_verse(self, abbrev:str, cv:str) -> discord.Embed:
+        cv = cv.split(':')
+        url = f'{API}/verses/nvi/{abbrev}/{cv[0]}/{cv[1]}'
+        request = self.get_request(url)
 
         if 'text' in request:
-            textlist = request['text'].split('\xa0 \xa0')
-            return self.CreateEmbeds(ctx, textlist, request)
-                       
-        else:
-            return self.embederro(ctx)
-            
-
-    async def embederro(self, ctx):
-        file = discord.File('images/betozinho_bah.jpeg', filename='betozinho_bah.jpeg')
-        descr = "Verifique se você digitou ``-b Livro Capítulo:Versículo`` corretamente"
-
-        embed = discord.Embed(
-                title="Não Encontrado", 
-                description=descr, 
-                color=discord.Color.green())
-
+            title = f"{request['book']['name']} {cv[0]}:{cv[1]}"
+            descr = request['text']
         
-        embed.set_thumbnail(url='attachment://betozinho_bah.jpeg')
+        else:
+            title = "Nada encontrado"
+            descr = "Verifique se você digitou **-verse Livro Capítulo:Versículos** existentes"
 
-        await ctx.reply(embed=embed, file=file, mention_author=False)
+        embed = discord.Embed(title=title, description=descr, color=0x00B115)
+        
+        return embed
 
 
-    async def CreateEmbeds(self, ctx, textlist, request):
-        '''Envia versículos como mensagem no discord, a cada 25 versículos é 
-           criada uma nova mensagem por conta da limitção de caracteres'''
+    def check_pattern(self, pattern:str, text:str) -> bool:
+        return bool(re.compile(pattern).findall(text))
 
-        limit = 25
-        newtextlist = [textlist[i:i + limit] for i in range(0, len(textlist), limit)]
 
-        for list in newtextlist:
-            response = '\n\n'.join(list)
+    def get_request(self, url:str) -> dict:
+        return requests.get(url, headers={'Authorization': 'Beare {}'.format(BIBLE)}).json()
+
+
+    def BibleBooks(self) -> str:
+        arq = os.path.join(sys.path[0],'dicts/dictforbible.json')
+        with open(arq, encoding='utf-8') as j:
+            Dict = json.load(j)
+
+        return Dict
+
+    # async def CreateEmbeds(self, ctx, textlist, request):
+    #     '''Envia versículos como mensagem no discord, a cada 25 versículos é 
+    #        criada uma nova mensagem por conta da limitção de caracteres'''
+
+    #     limit = 25
+    #     newtextlist = [textlist[i:i + limit] for i in range(0, len(textlist), limit)]
+
+    #     for list in newtextlist:
+    #         response = '\n\n'.join(list)
             
-            embed = discord.Embed(description=response, color = 0x00B115)
-            embed.set_author(name=request['reference'], icon_url=ctx.author.avatar_url)
+    #         embed = discord.Embed(description=response, color = 0x00B115)
+    #         embed.set_author(name=request['reference'], icon_url=ctx.author.avatar_url)
 
-            await ctx.channel.send(embed=embed)
-
+    #         await ctx.channel.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Bible(bot)) 
