@@ -143,7 +143,7 @@ class Bible(commands.Cog):
 
         if book in books and chapter:
             abbrev = books[book]
-            embeds = self.chapter(abbrev, chapter)
+            embeds = self.get_chapter(abbrev, chapter)
 
             for embed in embeds:
                 await ctx.reply(embed=embed, mention_author=False)
@@ -153,7 +153,7 @@ class Bible(commands.Cog):
             return await ctx.reply(response, mention_author=False)
 
 
-    def chapter(self, abbrev:str, chapter:str) -> list:
+    def get_chapter(self, abbrev:str, chapter:str) -> list:
         url = f'{API}/verses/nvi/{abbrev}/{chapter}'
         chap = self.get_request(url)
 
