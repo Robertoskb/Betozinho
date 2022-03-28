@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands
-from discord import activity
 from decouple import config
 
 bot = commands.Bot('-', help_command=None)

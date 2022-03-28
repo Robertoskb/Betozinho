@@ -16,10 +16,6 @@ class Talks(commands.Cog):
     async def on_message(self, message) -> None:
         if message.author == self.bot.user: return
 
-        await self.Raply(message)
-        
-
-    async def Raply(self, message):
         msgtype = self.MsgType(message) # Tipo da mensagem
         events = self.Responses(message) # Dicionário de respostas
         

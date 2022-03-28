@@ -137,7 +137,7 @@ class Bible(commands.Cog):
 
 
     @commands.command(name='chapter', help='Mostra todos os versículos de um capítulo', description="Livro Capítulo")
-    async def verse(self, ctx, book:str='', chapter:str=''):
+    async def chapter(self, ctx, book:str='', chapter:str=''):
         book = unidecode(book).lower()
         books = self.BibleBooks()
 

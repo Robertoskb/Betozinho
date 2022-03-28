@@ -18,9 +18,11 @@ class Gifs(commands.Cog):
         if mention is None:
             return await ctx.reply('Você precisa mencionar alguém', mention_author=False)      
             
+        else:
+            desc = f'**{ctx.author.name}** deu um tapa em **{mention.name}** D:'
+            embed = self.create_embed('slap', desc)
 
-        desc = f'**{ctx.author.name}** deu um tapa em **{mention.name}** D:'
-        await self.create_embed(ctx, 'slap', desc)
+            await ctx.channel.send(embed=embed)
 
 
     @commands.command(name='hug', help='Dar um abraço no seu amiguinho', description='@user')
@@ -28,9 +30,11 @@ class Gifs(commands.Cog):
         if mention is None:
             return await ctx.reply('Você precisa mencionar alguém', mention_author=False)
             
-        
-        desc = f'**{ctx.author.name}** deu um abraço em **{mention.name}**'
-        await self.create_embed(ctx, 'hug', desc)
+        else:
+            desc = f'**{ctx.author.name}** deu um abraço em **{mention.name}**'
+            embed = self.create_embed('hug', desc)
+
+            await ctx.channel.send(embed=embed)
     
     
     @commands.command(name='pat', help='Dar um cafuné no seu amiguinho', description='@user')
@@ -38,79 +42,91 @@ class Gifs(commands.Cog):
         if mention is None:
             return await ctx.reply('Você precisa mencionar alguém', mention_author=False)        
             
+        else:
+            desc = f'**{ctx.author.name}** deu um cafuné em **{mention.name}** ^^'
+            embed = self.create_embed('pat', desc)
 
-        desc = f'**{ctx.author.name}** deu um cafuné em **{mention.name}** ^^'
-        await self.create_embed(ctx, 'pat', desc)
-
+            await ctx.channel.send(embed=embed)
 
     @commands.command(name='amazing', help='Incrível', description='sem argumentos')
     async def amazing(self, ctx):
         desc = f'**{ctx.author.name}** ^^'
-        await self.create_embed(ctx, 'Amazing', desc)
+        embed = self.create_embed('Amazing', desc)
+        
+        await ctx.channel.send(embed=embed)
 
     
     @commands.command(name='cry', help='Vai chorar?', description='sem argumentos')
     async def cry(self, ctx):
         desc = f'**{ctx.author.name}** está chorando :<'
-        await self.create_embed(ctx, 'cry', desc)
+        embed = self.create_embed('cry', desc)
+        
+        await ctx.channel.send(embed=embed)
 
     
     @commands.command(name='coffee', help='Cafézinho', description='@user')
     async def coffe(self, ctx, mention: discord.User=None):
         if mention is None:
             desc = f"**{ctx.author.name}** está tomando café"
-            await self.create_embed(ctx, 'coffee', desc)
+            embed = self.create_embed('coffee', desc)
         
-
-        desc = f"**{ctx.author.name}** está tomando café com **{mention.name}**"
-        await self.create_embed(ctx, 'coffee', desc)
+        else:
+            desc = f"**{ctx.author.name}** está tomando café com **{mention.name}**"
+            embed = self.create_embed('coffee', desc)
+        
+        await ctx.channel.send(embed=embed)
 
     
     @commands.command(name='cute', help='Cute', description='sem argumentos')
     async def cute(self, ctx):
         desc = f"**{ctx.author.name}** ^^"
-        await self.create_embed(ctx, 'cute', desc)
+        embed = self.create_embed('cute', desc)
 
+        await ctx.channel.send(embed=embed)
     
     @commands.command(name='error', help='Erro', description='sem argumentos')
     async def error(self, ctx):
         desc = f"**{ctx.author.name}** bugou"
-        await self.create_embed(ctx, 'error', desc)
+        embed = self.create_embed('error', desc)
+
+        await ctx.channel.send(embed=embed)
 
 
     @commands.command(name='scream', help='Gritar sozinho ou com o amiguinho', description='@user')
     async def scream(self, ctx, mention: discord.User=None):
         if mention is None:
             desc = f"**{ctx.author.name}** gritou D:"
-            return await self.create_embed(ctx, 'scream', desc)
+            embed = self.create_embed('scream', desc)
         
+        else:
+            desc = f'**{ctx.author.name}** gritou com **{mention.name}**'
+            embed = self.create_embed('scream', desc)
 
-        desc = f'**{ctx.author.name}** gritou com **{mention.name}**'
-        await self.create_embed(ctx, 'scream', desc)
-
+        await ctx.channel.send(embed=embed)
     
     @commands.command(name='dance', help='Dançar sozinho ou com o seu amiguinho', description='@user')
     async def dance(self, ctx, mention: discord.User=None):
         if mention is None:
             desc = f'**{ctx.author.name}** dançou ^^'
-            return await self.create_embed(ctx, 'dance', desc)
+            embed = self.create_embed('dance', desc)
                  
+        else:
+            desc = f'**{ctx.author.name}** dançou com **{mention.name}** ^^'
+            embed = self.create_embed('dance', desc)
         
-        desc = f'**{ctx.author.name}** dançou com **{mention.name}** ^^'
-        await self.create_embed(ctx, 'dance', desc)
+        await ctx.channel.send(embed=embed)
 
 
-    async def create_embed(self, ctx, type, desc):   
+    def create_embed(self, type, desc):   
         request = requests.get(f'https://kawaii.red/api/gif/{type}/token={KAWAII}/').json()
 
         embed = discord.Embed(description=desc, color=0x00B115)
         embed.set_image(url=request['response'])
-    
-        await ctx.channel.send(embed=embed)
+
+        return embed
     
 
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
+    async def cog_command_error(self, ctx, error):
         if isinstance(error, commands.BadArgument):
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
 

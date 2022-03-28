@@ -6,6 +6,7 @@ class Help(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+
     @commands.command(name='help', aliases=['h'], help='The help command!', description='[command]')
     async def help(self, ctx, command_name:str=None):
         embed = discord.Embed(title='Help Commands!', color=0x00B115)
@@ -15,14 +16,17 @@ class Help(commands.Cog):
         
         await ctx.channel.send(embed=embed)
 
+
     def commandList(self, embed:discord.Embed) -> discord.Embed:
         cogs = self.cogs()
+        cogs.remove('Help')
 
         for cog in cogs:
             embed.add_field(name=cog, value=self.bot.cogs[cog].__doc__)
         embed.add_field(name='Help', value='**-help [Categoria]**', inline=False)     
 
         return embed
+
 
     def especificCommand(self, embed:discord.Embed, command_name:str) -> discord.Embed:
         cogs = self.cogs()
@@ -41,6 +45,7 @@ class Help(commands.Cog):
                     return embed
         
         return self.especificCog(embed, command_name)
+
     
     def especificCog(self, embed:discord.Embed, cog_name:str) -> discord.Embed:
         commandList = ""
@@ -55,12 +60,17 @@ class Help(commands.Cog):
 
         return embed
 
+
     def cogs(self) -> list:
         cogs = [c for c in self.bot.cogs.keys()]
-        remove = ['Talks', 'Help']
+        remove = ['Talks']
         for r in remove: cogs.remove(r)
 
         return cogs
+
+    async def cog_command_error(self, ctx, error):
+        pass
+    
 
 
 def setup(bot):
