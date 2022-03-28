@@ -17,10 +17,10 @@ class Bible(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.command(name='books', help='Mostra os livros da Bíblia', description="opcionalmente VT ou NT")
-    async def books(self, ctx, testament:str=None):
+    @commands.command(name='books', help='Mostra todos os livros da Bíblia', description="opcionalmente VT ou NT")
+    async def books(self, ctx, testament:str=''):
         
-        if testament is None:
+        if not testament:
             embed = self.get_books()
         
         elif testament.upper() in ['VT', 'NT']:
@@ -83,7 +83,7 @@ class Bible(commands.Cog):
             await ctx.reply(response, mention_author=False)
             
     
-    def bookInfos(self, abbrev) -> discord.Embed:
+    def bookInfos(self, abbrev:str) -> discord.Embed:
         book = self.get_request(f'{API}/books/{abbrev}')
         testaments = {'VT':'Antigo Testamento', 'NT':'Novo Testamento'}
 
@@ -98,7 +98,7 @@ class Bible(commands.Cog):
         return embed
 
 
-    @commands.command(name='verse', help='Mostra versículos da Bíblia', description="Livro Capítulo:Versículo")
+    @commands.command(name='verse', help='Mostra um versículo escolhido', description="Livro Capítulo:Versículo")
     async def verse(self, ctx, book:str='', chapter_verse:str=''):
         book = unidecode(book).lower()
 
@@ -121,11 +121,11 @@ class Bible(commands.Cog):
     def get_verse(self, abbrev:str, cv:str) -> discord.Embed:
         cv = cv.split(':')
         url = f'{API}/verses/nvi/{abbrev}/{cv[0]}/{cv[1]}'
-        request = self.get_request(url)
+        verse = self.get_request(url)
 
-        if 'text' in request:
-            title = f"{request['book']['name']} {cv[0]}:{cv[1]}"
-            descr = request['text']
+        if 'text' in verse:
+            title = f"{verse['book']['name']} {cv[0]}:{cv[1]}"
+            descr = verse['text']
         
         else:
             title = "Nada encontrado"
@@ -134,6 +134,70 @@ class Bible(commands.Cog):
         embed = discord.Embed(title=title, description=descr, color=0x00B115)
         
         return embed
+
+
+    @commands.command(name='chapter', help='Mostra todos os versículos de um capítulo', description="Livro Capítulo")
+    async def verse(self, ctx, book:str='', chapter:str=''):
+        book = unidecode(book).lower()
+        books = self.BibleBooks()
+
+        if book in books and chapter:
+            abbrev = books[book]
+            embeds = self.chapter(abbrev, chapter)
+
+            for embed in embeds:
+                await ctx.reply(embed=embed, mention_author=False)
+
+        else:
+            response = 'Tente digitar **-chapter Livro Capítulo** corretamente'
+            return await ctx.reply(response, mention_author=False)
+
+
+    def chapter(self, abbrev:str, chapter:str) -> list:
+        url = f'{API}/verses/nvi/{abbrev}/{chapter}'
+        chap = self.get_request(url)
+
+        if 'verses' in chap:
+            embeds = self.get_embeds_verses(chap)
+
+            return embeds
+
+        else:
+            title = 'Capítulo não encontrado'
+            descr = 'Digite um capítulo existente no livro'
+            embed = discord.Embed(title=title, description=descr, color=0x00B115)
+
+            return [embed]
+
+    
+    def get_embeds_verses(self, verses:dict) -> list:
+        verses_list = []
+        for verse in verses['verses']:
+            verses_list.append(verse)
+        verses_list = self.split_list(verses_list, 25)
+
+        return self.create_embeds(verses, verses_list)
+    
+    
+    def create_embeds(self, verses:dict, verses_list:list) -> list:
+        embeds = []
+        for lst in verses_list:
+            title = f"{verses['book']['name']} {verses['chapter']['number']}"
+            embed = discord.Embed(title=title, color=0x00B115)
+            
+            text = ''
+            for verse in lst:
+                text += f"**{verse['number']}** {verse['text']}\n\n"
+            
+            embed.description = text
+            embeds.append(embed)
+        
+        return embeds
+
+
+    def split_list(self, lst:list, limit:int) -> list:
+        for i in range(0, len(lst), limit):
+            yield lst[i:i+limit]
 
 
     def get_request(self, url:str) -> dict:

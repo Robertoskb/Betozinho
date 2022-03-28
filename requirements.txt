@@ -1,12 +1,6 @@
 discord.py
-discord.py[voice]
-wavelink==0.9.10
-lavalink
 requests
 python-decouple
 python-dotenv
-youtube-dl
 pynacl
-ffmpeg
-googletrans==4.0.0rc1 
-pillow
+unidecode
