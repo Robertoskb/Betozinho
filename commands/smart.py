@@ -11,8 +11,8 @@ class Random(commands.Cog):
         self.bot =  bot
     
     @commands.command(name='sort', help='Sorteia o que você escolher', description='item1, item2, item3...')
-    async def sort(self, ctx, *, items:str = None):
-        if items is None: response = "Nada para sortear '-'"
+    async def sort(self, ctx, *, items:str=''):
+        if not items: response = "Nada para sortear '-'"
         else: response = self.sort_response(ctx, items)
 
         await ctx.reply(response, mention_author=False)
