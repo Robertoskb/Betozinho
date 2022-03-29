@@ -1,3 +1,4 @@
+from wsgiref import headers
 import requests
 import discord
 import re
@@ -150,7 +151,8 @@ class Bible(commands.Cog):
 
         else:
             response = 'Tente digitar **-chapter Livro Capítulo** corretamente'
-            return await ctx.reply(response, mention_author=False)
+            
+            await ctx.reply(response, mention_author=False)
 
 
     def get_chapter(self, abbrev:str, chapter:str) -> list:
@@ -171,15 +173,14 @@ class Bible(commands.Cog):
 
     
     def get_embeds_verses(self, verses:dict) -> list:
-        verses_list = []
-        for verse in verses['verses']:
-            verses_list.append(verse)
+        verses_list = [v for v in verses['verses']]
+
         verses_list = self.split_list(verses_list, 25)
 
-        return self.create_embeds(verses, verses_list)
+        return self.create_embeds_verses(verses, verses_list)
     
     
-    def create_embeds(self, verses:dict, verses_list:list) -> list:
+    def create_embeds_verses(self, verses:dict, verses_list:list) -> list:
         embeds = []
         for lst in verses_list:
             title = f"{verses['book']['name']} {verses['chapter']['number']}"
@@ -198,6 +199,54 @@ class Bible(commands.Cog):
     def split_list(self, lst:list, limit:int) -> list:
         for i in range(0, len(lst), limit):
             yield lst[i:i+limit]
+
+    @commands.command(name='search', help='Pesquisa por palavra', description="Palavra(s)")
+    async def search(self, ctx, *, search:str=''):
+        if search:
+            embed = self.get_embed_search(search)
+            await ctx.reply(embed=embed,  mention_author=False)
+
+        else:
+            response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
+            await ctx.reply(response,  mention_author=False)
+
+        
+    def get_embed_search(self, search:str) -> discord.Embed:
+        verses = self.post_request(search)
+    
+        if verses['verses']:
+            embed = self.create_embed_search(verses, search)
+
+        else:
+            title = 'Nada encontrado'
+            descr = f'Nenhum resultado para **{search}**'
+            embed = discord.Embed(title=title, description=descr, color=0x00B115)
+
+        
+        return embed
+    
+
+    def create_embed_search(self, verses:list, search:str) -> discord.Embed:
+        embed = discord.Embed(title='Resultados', color=0x00B115)
+        
+        for i in verses['verses'][:5]:
+            for w in search.split():
+                if len(w) > 3:
+                    i['text'] = i['text'].replace(w, f'**{w}**')
+
+            name = f"{i['book']['name']} {i['chapter']}:{i['number']}"
+            value = f"{i['text']}\n\n"
+
+            embed.add_field(name=name, value=value, inline=False)
+        
+        return embed
+
+
+    def post_request(self, search:str) -> dict:
+        data = {"version": "nvi", "search": search}
+        headers = {'Authorization': f'Beare {BIBLE}'}
+
+        return requests.post(f'{API}/verses/search', json=data, headers=headers).json()
 
 
     def get_request(self, url:str) -> dict:
