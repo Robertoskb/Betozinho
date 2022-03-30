@@ -103,7 +103,7 @@ class Bible(commands.Cog):
     async def verse(self, ctx, book:str='', chapter_verse:str=''):
         book = unidecode(book).lower()
 
-        pattern = bool(re.compile('.:.').findall(chapter_verse))
+        pattern = re.compile('.:.').findall(chapter_verse)
 
         books  = self.BibleBooks()
 
@@ -200,6 +200,7 @@ class Bible(commands.Cog):
         for i in range(0, len(lst), limit):
             yield lst[i:i+limit]
 
+
     @commands.command(name='search', help='Pesquisa por palavra', description="Palavra(s)")
     async def search(self, ctx, *, search:str=''):
         if search:
@@ -219,10 +220,9 @@ class Bible(commands.Cog):
 
         else:
             title = 'Nada encontrado'
-            descr = f'Nenhum resultado para **{search}**'
+            descr = f'Nenhum resultado para **{search[:55]}...**'
             embed = discord.Embed(title=title, description=descr, color=0x00B115)
 
-        
         return embed
     
 
@@ -244,7 +244,7 @@ class Bible(commands.Cog):
         for w in search.split():
             case1 = f'**{w}' in text
             case2 =  f'{w}**' in text
-            
+
             if case1 or case2: continue
             else: text = text.replace(w, f'**{w}**')
 
@@ -261,6 +261,7 @@ class Bible(commands.Cog):
 
     def get_request(self, url:str) -> dict:
         headers = {'Authorization': f'Beare {BIBLE}'}
+
         return requests.get(url, headers=headers).json()
 
 
