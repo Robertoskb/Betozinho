@@ -213,9 +213,9 @@ class Bible(commands.Cog):
         
     def get_embed_search(self, search:str) -> discord.Embed:
         verses = self.post_request(search)
-    
-        if verses['verses']:
-            embed = self.create_embed_search(verses, search)
+
+        if 'verses' in verses and verses['verses']:
+                embed = self.create_embed_search(verses, search)
 
         else:
             title = 'Nada encontrado'
@@ -230,23 +230,33 @@ class Bible(commands.Cog):
         embed = discord.Embed(title='Resultados', color=0x00B115)
         
         for i in verses['verses'][:5]:
-            for w in search.split():
-                if len(w) > 3:
-                    i['text'] = i['text'].replace(w, f'**{w}**')
-
+            verse = self.highlight_search(i['text'], search)
+                
             name = f"{i['book']['name']} {i['chapter']}:{i['number']}"
-            value = f"{i['text']}\n\n"
+            value = f"{verse}\n\n"
 
             embed.add_field(name=name, value=value, inline=False)
         
         return embed
 
+    
+    def highlight_search(self, text:str, search:str) -> str:
+        for w in search.split():
+            case1 = f'**{w}' in text
+            case2 =  f'{w}**' in text
+            
+            if case1 or case2: continue
+            else: text = text.replace(w, f'**{w}**')
+
+        return text
+
 
     def post_request(self, search:str) -> dict:
         data = {"version": "nvi", "search": search}
         headers = {'Authorization': f'Beare {BIBLE}'}
+        url = f'{API}/verses/search'
 
-        return requests.post(f'{API}/verses/search', json=data, headers=headers).json()
+        return requests.post(url, json=data, headers=headers).json()
 
 
     def get_request(self, url:str) -> dict:
