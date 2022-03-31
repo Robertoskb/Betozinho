@@ -87,7 +87,8 @@ class Bible(commands.Cog):
         embed = discord.Embed(color=0x00B115)
 
         embed.add_field(name='Livro', value=book['name'], inline=False)
-        embed.add_field(name='Testamento', value=testaments[book['testament']], inline=False)
+        embed.add_field(name='Testamento',
+                        value=testaments[book['testament']], inline=False)
         embed.add_field(name='Grupo', value=book['group'], inline=False)
         embed.add_field(name='Capítulos', value=f"{book['chapters']} caps")
         embed.add_field(name='Autor', value=book['author'])
@@ -150,11 +151,13 @@ class Bible(commands.Cog):
     def get_chapter(self, abbrev: str, chapter: str) -> list:
         url = f'{API}/verses/nvi/{abbrev}/{chapter}'
         chap = self.get_request(url)
+        embeds = self.check_chapter(chap)
 
+        return embeds
+
+    def check_chapter(self, chap: dict) -> list:
         if 'verses' in chap:
             embeds = self.get_embeds_verses(chap)
-
-            return embeds
 
         else:
             title = 'Capítulo não encontrado'
@@ -162,7 +165,9 @@ class Bible(commands.Cog):
             embed = discord.Embed(
                 title=title, description=descr, color=0x00B115)
 
-            return [embed]
+            embeds = [embed]
+
+        return embeds
 
     def get_embeds_verses(self, verses: dict) -> list:
         verses_list = [v for v in verses['verses']]
@@ -203,6 +208,11 @@ class Bible(commands.Cog):
     def get_embed_search(self, search: str) -> discord.Embed:
         verses = self.post_request(search)
 
+        embed = self.check_search(verses, search)
+
+        return embed
+
+    def check_search(self, verses, search: str) -> discord.Embed:
         if 'verses' in verses and verses['verses']:
             embed = self.create_embed_search(verses, search)
 

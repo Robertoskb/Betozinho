@@ -36,8 +36,10 @@ class Help(commands.Cog):
         commandhelp = ""
         for cog in cogs:
             for command in self.bot.get_cog(cog).walk_commands():
-                if command.hidden: continue
-                if command.parent != None: continue
+                if command.hidden:
+                    continue
+                if command.parent != None:
+                    continue
 
                 if command.name == command_name:
                     commandhelp = f'**-{command.name}  {command.description}**'
@@ -50,6 +52,7 @@ class Help(commands.Cog):
 
     def especificCog(self, embed: discord.Embed, cog_name: str) -> discord.Embed:
         commandList = ""
+        cog_name = cog_name.lower().capitalize()
         for command in self.bot.get_cog(cog_name).walk_commands():
             if command.hidden:
                 continue
