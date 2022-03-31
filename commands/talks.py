@@ -6,66 +6,64 @@ from discord.ext import commands
 
 
 class Talks(commands.Cog):
-    """Talks with user"""
+	"""Talks with user"""
+	
+	def __init__(self, bot):
+		self.bot = bot
 
-    def __init__(self, bot):
-        self.bot = bot
 
+	@commands.Cog.listener()
+	async def on_message(self, message) -> None:
+		if message.author == self.bot.user: return
 
-    @commands.Cog.listener()
-    async def on_message(self, message) -> None:
-        if message.author == self.bot.user: return
+		msgtype = self.get_MsgType(message) 
+		events = self.Responses(message) 
+		
+		if msgtype in events:
+			response = events[msgtype]
 
-        msgtype = self.MsgType(message) # Tipo da mensagem
-        events = self.Responses(message) # Dicionário de respostas
-        
-        if msgtype in events: 
-            # Se o tipo da mensagem mensagem estiver no dicionário respostas
-            # O bot vai responder de acordo com tipo da mensagem recebida
-            await message.reply(events[msgtype], mention_author=False)
-            
-                
-    def MsgType(self, message) -> str: 
-        # Verifica o tipo da mensagem 
-        # Ex: 'oie' é do tipo 'hi'
-        # Retorna o tipo 'hi' se a mensagem conter 'oie'
-        # Se o tipo não existir, uma string vazia é retornada
+			await message.reply(response, mention_author=False)
+			
+				
+	def get_MsgType(self, message) -> str: 
+		typesdict = self.BotDict('input') 
+		msg = message.content.lower()
+		
+		msgtype = self.CheckMsgType(typesdict, msg)
+			 
+		return msgtype
 
-        typesdict = self.BotDict('input') # Dicionário com os tipos de mensagens
-        # Os tipos são as chaves
-        # Cada tipo tem uma lista de mensagens correspondentes
+	
+	def CheckMsgType(self, typesdict, msg):
+		msgtype = ''
+		for Type, lst in typesdict.items():
+			for item in lst:
+				case1 = f'"{item}"' in msg
+				case2 = f"'{item}'" in msg
 
-        msg = message.content.lower()
-        
-        msgtype = ''
-        for k, v in typesdict.items(): 
-            for i in v:
-                if f'"{i}"' in msg or f"'{i}'"in msg: continue
-                if i in msg: msgtype = k 
-                # Se alguma string da lista de uma chave estiver na mensagem
-                # O tipo da mensagem terá o valor da chave 
+				if case1 or case2 : continue
+				if item in msg: msgtype = Type
 
-        return msgtype
+		return msgtype
+	
 
-    
-    def Responses(self, message) -> dict:
-        Dict = self.BotDict('responses') # Dicionário de respostas
+	def Responses(self, message) -> dict:
+		Dict = self.BotDict('responses')
 
-        f = message.author.name
-        for k, v in Dict.items(): 
-            # Converte a lista de respostas em uma resposta aleatória
-            Dict[k] = random.choice(v).format(f) 
+		author = message.author.name
+		for k, v in Dict.items():
+			Dict[k] = random.choice(v).format(author) 
 
-        return Dict
+		return Dict
 
-    
-    def BotDict(self, mode:str) -> dict:
-        # Retorna um dicinário específico de um json
-        with open(os.path.join(sys.path[0],'dicts/dictfortalks.json'), encoding='utf-8') as j:
-            Dict = json.load(j)
+	
+	def BotDict(self, mode:str) -> dict:
+		arq = os.path.join(sys.path[0],'dicts/dictfortalks.json')
+		with open(arq, encoding='utf-8') as j:
+			Dict = json.load(j)
 
-        return Dict[mode]
+		return Dict[mode]
 
 
 def setup(bot):
-    bot.add_cog(Talks(bot))
+	bot.add_cog(Talks(bot))
