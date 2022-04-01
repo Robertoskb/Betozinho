@@ -4,6 +4,7 @@ import re
 import sys
 import os
 import json
+import asyncio
 from discord.ext import commands
 from decouple import config
 from unidecode import unidecode
@@ -22,63 +23,64 @@ class Bible(commands.Cog):
     async def books(self, ctx, testament: str = ''):
 
         if not testament:
-            embed = self.get_books()
+            embed = self.allBooks()
 
         elif testament.upper() in ['VT', 'NT']:
             embed = self.especificBooks(testament.upper())
 
         else:
             response = 'Tente digitar **-books** e opcionalmente **VT ou NT**'
+
             return await ctx.reply(response, mention_author=False)
 
         await ctx.reply(embed=embed, mention_author=False)
 
-    def get_books(self) -> discord.Embed:
+    def allBooks(self) -> discord.Embed:
         books = self.get_request(f'{API}/books')
 
-        vt = nt = ''
-        for book in books:
-            if book['testament'] == 'VT':
-                vt += f'{book["name"]}\n'
-            else:
-                nt += f'{book["name"]}\n'
+        value = self.testaments_books(books)
 
         embed = discord.Embed(color=0x00B115)
-        embed.add_field(name='Antigo Testamento', value=vt)
-        embed.add_field(name='Novo Testamento', value=nt)
+        embed.add_field(name='Antigo Testamento', value=value['VT'])
+        embed.add_field(name='Novo Testamento', value=value['NT'])
 
         return embed
 
-    def especificBooks(self, testament) -> discord.Embed:
+    def especificBooks(self, testament: str) -> discord.Embed:
         books = self.get_request(f'{API}/books')
         testaments = {'VT': 'Antigo Testamento', 'NT': 'Novo Testamento'}
 
-        value = ''
-        for book in books:
-            if book['testament'] == testament:
-                value += f'{book["name"]}\n'
+        value = self.testaments_books(books)
 
         embed = discord.Embed(color=0x00B115)
-        embed.add_field(name=testaments[testament], value=value)
+        embed.add_field(name=testaments[testament], value=value[testament])
 
         return embed
 
+    def testaments_books(self, books: dict) -> dict:
+        testaments = {'VT': '', 'NT': ''}
+        for book in books:
+            if book['testament'] == 'VT':
+                testaments['VT'] += f'{book["name"]} | '
+            else:
+                testaments['NT'] += f'{book["name"]} | '
+
+        return testaments
+
     @commands.command(name='book', help='Informações de um livro Bíblia', description="Livro")
     async def book(self, ctx, book: str = ''):
-
         book = unidecode(book).lower()
-        books = self.BibleBooks()
+        abbrevs = self.BibleBooks()
 
-        if book in books:
-            abbrev = books[book]
-            embed = self.bookInfos(abbrev)
-
-            await ctx.reply(embed=embed, mention_author=False)
+        if book in abbrevs:
+            embed = self.bookInfos(abbrevs[book])
+            reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
             response = 'Tente digitar **-book Livro** corretamente'
+            reply = ctx.reply(response, mention_author=False)
 
-            await ctx.reply(response, mention_author=False)
+        await reply
 
     def bookInfos(self, abbrev: str) -> discord.Embed:
         book = self.get_request(f'{API}/books/{abbrev}')
@@ -98,27 +100,26 @@ class Bible(commands.Cog):
     @commands.command(name='verse', help='Mostra um versículo escolhido', description="Livro Capítulo:Versículo")
     async def verse(self, ctx, book: str = '', chapter_verse: str = ''):
         book = unidecode(book).lower()
-
         pattern = re.compile('.:.').findall(chapter_verse)
+        abbrevs = self.BibleBooks()
 
-        books = self.BibleBooks()
-
-        if book in books and pattern:
-            abbrev = books[book]
-            embed = self.get_verse(abbrev, chapter_verse)
-
-            await ctx.reply(embed=embed, mention_author=False)
+        if book in abbrevs and pattern:
+            embed = self.get_verse(abbrevs[book], chapter_verse)
+            reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
             response = 'Tente digitar **-verse Livro Capítulo:Versículo** corretamente'
+            reply = ctx.reply(response, mention_author=False)
 
-            await ctx.reply(response, mention_author=False)
+        await reply
 
     def get_verse(self, abbrev: str, cv: str) -> discord.Embed:
-        cv = cv.split(':')
         url = f'{API}/verses/nvi/{abbrev}/{cv[0]}/{cv[1]}'
         verse = self.get_request(url)
 
+        return self.check_verse(verse, cv.split(':'))
+
+    def check_verse(self, verse, cv: list) -> discord.Embed:
         if 'text' in verse:
             title = f"{verse['book']['name']} {cv[0]}:{cv[1]}"
             descr = verse['text']
@@ -134,18 +135,18 @@ class Bible(commands.Cog):
     @commands.command(name='chapter', help='Mostra todos os versículos de um capítulo', description="Livro Capítulo")
     async def chapter(self, ctx, book: str = '', chapter: str = ''):
         book = unidecode(book).lower()
-        books = self.BibleBooks()
+        abbrevs = self.BibleBooks()
 
-        if book in books and chapter:
-            abbrev = books[book]
-            embeds = self.get_chapter(abbrev, chapter)
+        if book in abbrevs and chapter:
+            embeds = self.get_chapter(abbrevs[book], chapter)
 
-            for embed in embeds:
-                await ctx.reply(embed=embed, mention_author=False)
+            reply = await ctx.reply(embed=embeds[0], mention_author=False)
+
+            if len(embeds) > 1:
+                await self.pages(ctx, reply, embeds)
 
         else:
             response = 'Tente digitar **-chapter Livro Capítulo** corretamente'
-
             await ctx.reply(response, mention_author=False)
 
     def get_chapter(self, abbrev: str, chapter: str) -> list:
@@ -171,7 +172,6 @@ class Bible(commands.Cog):
 
     def get_embeds_verses(self, verses: dict) -> list:
         verses_list = [v for v in verses['verses']]
-
         verses_list = self.split_list(verses_list, 25)
 
         return self.create_embeds_verses(verses, verses_list)
@@ -199,15 +199,16 @@ class Bible(commands.Cog):
     async def search(self, ctx, *, search: str = ''):
         if search:
             embed = self.get_embed_search(search)
-            await ctx.reply(embed=embed,  mention_author=False)
+            reply = ctx.reply(embed=embed,  mention_author=False)
 
         else:
             response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
-            await ctx.reply(response,  mention_author=False)
+            reply = ctx.reply(response,  mention_author=False)
+
+        await reply
 
     def get_embed_search(self, search: str) -> discord.Embed:
         verses = self.post_request(search)
-
         embed = self.check_search(verses, search)
 
         return embed
@@ -262,6 +263,42 @@ class Bible(commands.Cog):
         headers = {'Authorization': f'Beare {BIBLE}'}
 
         return requests.get(url, headers=headers).json()
+
+    async def pages(self, ctx, reply, embeds):
+        await reply.add_reaction("◀️")
+        await reply.add_reaction("▶️")
+
+        def check(react, usr):
+            return usr == ctx.author and str(react.emoji) in ["◀️", "▶️"]
+
+        cur_page = 0
+
+        while True:
+            try:
+                reaction, user = await self.bot.wait_for("reaction_add", timeout=600, check=check)
+                cur_page = await self.switch_pages(reply, embeds, reaction, user, cur_page)
+
+            except asyncio.TimeoutError:
+                await reply.remove_reaction("◀️", self.bot.user)
+                await reply.remove_reaction("▶️", self.bot.user)
+
+                break
+
+    async def switch_pages(self, reply, embeds, reaction, user, cur_page) -> int:
+        if str(reaction.emoji) == "▶️" and cur_page != len(embeds) - 1:
+            cur_page += 1
+            await reply.edit(embed=embeds[cur_page])
+            await reply.remove_reaction(reaction, user)
+
+        elif str(reaction.emoji) == "◀️" and cur_page > 0:
+            cur_page -= 1
+            await reply.edit(embed=embeds[cur_page])
+            await reply.remove_reaction(reaction, user)
+
+        else:
+            await reply.remove_reaction(reaction, user)
+
+        return cur_page
 
     def BibleBooks(self) -> dict:
         arq = os.path.join(sys.path[0], 'dicts/dictforbible.json')
