@@ -10,6 +10,7 @@ from decouple import config
 from unidecode import unidecode
 
 BIBLE = config('bible')
+COLOR = 0x00B115
 API = "https://www.abibliadigital.com.br/api"
 
 
@@ -40,7 +41,7 @@ class Bible(commands.Cog):
 
         value = self.testaments_books(books)
 
-        embed = discord.Embed(color=0x00B115)
+        embed = discord.Embed(color=COLOR)
         embed.add_field(name='Antigo Testamento', value=value['VT'])
         embed.add_field(name='Novo Testamento', value=value['NT'])
 
@@ -52,7 +53,7 @@ class Bible(commands.Cog):
 
         value = self.testaments_books(books)
 
-        embed = discord.Embed(color=0x00B115)
+        embed = discord.Embed(color=COLOR)
         embed.add_field(name=testaments[testament], value=value[testament])
 
         return embed
@@ -86,7 +87,7 @@ class Bible(commands.Cog):
         book = self.get_request(f'{API}/books/{abbrev}')
         testaments = {'VT': 'Antigo Testamento', 'NT': 'Novo Testamento'}
 
-        embed = discord.Embed(color=0x00B115)
+        embed = discord.Embed(color=COLOR)
 
         embed.add_field(name='Livro', value=book['name'], inline=False)
         embed.add_field(name='Testamento',
@@ -128,7 +129,7 @@ class Bible(commands.Cog):
             title = "Nada encontrado"
             descr = "Verifique se você digitou **Capítulo:Versículo** existentes"
 
-        embed = discord.Embed(title=title, description=descr, color=0x00B115)
+        embed = discord.Embed(title=title, description=descr, color=COLOR)
 
         return embed
 
@@ -142,7 +143,6 @@ class Bible(commands.Cog):
 
         if book in abbrevs and chapter:
             embeds = self.get_chapter(abbrevs[book], chapter)
-
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
 
             if len(embeds) > 1:
@@ -167,7 +167,7 @@ class Bible(commands.Cog):
             title = 'Capítulo não encontrado'
             descr = 'Digite um capítulo existente no livro'
             embed = discord.Embed(
-                title=title, description=descr, color=0x00B115)
+                title=title, description=descr, color=COLOR)
 
             embeds = [embed]
 
@@ -193,7 +193,7 @@ class Bible(commands.Cog):
         title = f"{verses['book']['name']} {verses['chapter']['number']}"
         descr = f'página {len(embeds)+1} de {len(verses_lists)}\n\n'
         embed = discord.Embed(
-            title=title, description=descr, color=0x00B115)
+            title=title, description=descr, color=COLOR)
 
         return embed
 
@@ -212,15 +212,31 @@ class Bible(commands.Cog):
             return
 
         if search:
-            embeds = self.get_embeds_search(search)
-            reply = await ctx.reply(embed=embeds[0],  mention_author=False)
-
-            if len(embeds) > 1:
-                await self.create_pages(ctx, reply, embeds)
-
+            await self.loadMessage(ctx, search)
+            
         else:
             response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
-            reply = await ctx.reply(response,  mention_author=False)
+            await ctx.reply(response,  mention_author=False)
+    
+    async def loadMessage(self, ctx, search):
+        loadembed = self.loadembed()
+        reply = await ctx.reply(embed=loadembed, mention_author=False)
+
+        await self.editsearch(ctx, reply, search)
+
+    async def editsearch(self, ctx, reply, search):
+        embeds = self.get_embeds_search(search)
+        await reply.edit(embed=embeds[0])
+
+        if len(embeds) > 1:
+            await self.create_pages(ctx, reply, embeds)
+
+    def loadembed(self) -> discord.Embed:
+        title = 'Buscando 🔎'
+        descr = 'Isso pode demorar alguns segundos'
+        embed = discord.Embed(title=title, description=descr, color=COLOR)
+        
+        return embed
 
     def get_embeds_search(self, search: str) -> list:
         verses = self.post_request(search)
@@ -236,7 +252,7 @@ class Bible(commands.Cog):
             title = 'Nada encontrado'
             descr = f'Nenhum resultado para **{search[:55]}...**'
             embed = [discord.Embed(
-                title=title, description=descr, color=0x00B115)]
+                title=title, description=descr, color=COLOR)]
 
         return embed
 
@@ -255,7 +271,7 @@ class Bible(commands.Cog):
     def result_header(self, embeds: list, verses_lists: list) -> discord.Embed:
         descr = f'página {len(embeds)+1} de {len(verses_lists[:100])}'
         embed = discord.Embed(title='Resultados',
-                              description=descr, color=0x00B115)
+                              description=descr, color=COLOR)
 
         return embed
 
