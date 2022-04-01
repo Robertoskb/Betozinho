@@ -104,7 +104,7 @@ class Bible(commands.Cog):
         abbrevs = self.BibleBooks()
 
         if book in abbrevs and pattern:
-            embed = self.get_verse(abbrevs[book], chapter_verse)
+            embed = self.get_verse(abbrevs[book], chapter_verse.split(':'))
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
@@ -113,11 +113,11 @@ class Bible(commands.Cog):
 
         await reply
 
-    def get_verse(self, abbrev: str, cv: str) -> discord.Embed:
+    def get_verse(self, abbrev: str, cv: list) -> discord.Embed:
         url = f'{API}/verses/nvi/{abbrev}/{cv[0]}/{cv[1]}'
         verse = self.get_request(url)
 
-        return self.check_verse(verse, cv.split(':'))
+        return self.check_verse(verse, cv)
 
     def check_verse(self, verse, cv: list) -> discord.Embed:
         if 'text' in verse:
@@ -134,6 +134,9 @@ class Bible(commands.Cog):
 
     @commands.command(name='chapter', help='Mostra todos os versículos de um capítulo', description="Livro Capítulo")
     async def chapter(self, ctx, book: str = '', chapter: str = ''):
+        if ctx.channel.type == discord.ChannelType.private: 
+            return
+
         book = unidecode(book).lower()
         abbrevs = self.BibleBooks()
 
@@ -143,7 +146,7 @@ class Bible(commands.Cog):
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
 
             if len(embeds) > 1:
-                await self.pages(ctx, reply, embeds)
+                await self.create_pages(ctx, reply, embeds)
 
         else:
             response = 'Tente digitar **-chapter Livro Capítulo** corretamente'
@@ -176,62 +179,91 @@ class Bible(commands.Cog):
 
         return self.create_embeds_verses(verses, verses_list)
 
-    def create_embeds_verses(self, verses: dict, verses_list: list) -> list:
+    def create_embeds_verses(self, verses: dict, verses_lists: list) -> list:
         embeds = []
-        for lst in verses_list:
-            title = f"{verses['book']['name']} {verses['chapter']['number']}"
-            embed = discord.Embed(title=title, color=0x00B115)
+        for lst in verses_lists:
+            embed = self.chapter_header(verses_lists, verses, embeds)
+            embed = self.chapter_main(embed, lst)
 
-            text = ''
-            for verse in lst:
-                text += f"**{verse['number']}** {verse['text']}\n\n"
-
-            embed.description = text
             embeds.append(embed)
 
         return embeds
 
-    def split_list(self, lst: list, limit: int) -> list:
-        for i in range(0, len(lst), limit):
-            yield lst[i:i+limit]
-
-    @commands.command(name='search', help='Pesquisa por palavra', description="Palavra(s)")
-    async def search(self, ctx, *, search: str = ''):
-        if search:
-            embed = self.get_embed_search(search)
-            reply = ctx.reply(embed=embed,  mention_author=False)
-
-        else:
-            response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
-            reply = ctx.reply(response,  mention_author=False)
-
-        await reply
-
-    def get_embed_search(self, search: str) -> discord.Embed:
-        verses = self.post_request(search)
-        embed = self.check_search(verses, search)
+    def chapter_header(self, verses_lists: list, verses: dict, embeds: list) -> discord.Embed:
+        title = f"{verses['book']['name']} {verses['chapter']['number']}"
+        descr = f'página {len(embeds)+1} de {len(verses_lists)}\n\n'
+        embed = discord.Embed(
+            title=title, description=descr, color=0x00B115)
 
         return embed
 
-    def check_search(self, verses, search: str) -> discord.Embed:
+    def chapter_main(self, embed: discord.Embed, lst: list) -> discord.Embed:
+        text = ''
+        for verse in lst:
+            text += f"**{verse['number']}** {verse['text']}\n\n"
+
+        embed.description += text
+
+        return embed
+
+    @commands.command(name='search', help='Pesquisa por palavra', description="Palavra(s)")
+    async def search(self, ctx, *, search: str = ''):
+        if ctx.channel.type == discord.ChannelType.private: 
+            return
+
+        if search:
+            embeds = self.get_embeds_search(search)
+            reply = await ctx.reply(embed=embeds[0],  mention_author=False)
+
+            if len(embeds) > 1:
+                await self.create_pages(ctx, reply, embeds)
+
+        else:
+            response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
+            reply = await ctx.reply(response,  mention_author=False)
+
+    def get_embeds_search(self, search: str) -> list:
+        verses = self.post_request(search)
+        embeds = self.check_search(verses, search)
+
+        return embeds
+
+    def check_search(self, verses, search: str) -> list:
         if 'verses' in verses and verses['verses']:
-            embed = self.create_embed_search(verses, search)
+            embed = self.create_embeds_search(verses, search)
 
         else:
             title = 'Nada encontrado'
             descr = f'Nenhum resultado para **{search[:55]}...**'
-            embed = discord.Embed(
-                title=title, description=descr, color=0x00B115)
+            embed = [discord.Embed(
+                title=title, description=descr, color=0x00B115)]
 
         return embed
 
-    def create_embed_search(self, verses: list, search: str) -> discord.Embed:
-        embed = discord.Embed(title='Resultados', color=0x00B115)
+    def create_embeds_search(self, verses: list, search: str) -> list:
+        verses_lists = self.split_list(verses['verses'], 5)
 
-        for i in verses['verses'][:5]:
-            verse = self.highlight_search(i['text'], search)
+        embeds = []
+        for lst in verses_lists[:100]:
+            embed = self.result_header(embeds, verses_lists)
+            embed = self.results_main(embed, lst, search)
 
-            name = f"{i['book']['name']} {i['chapter']}:{i['number']}"
+            embeds.append(embed)
+
+        return embeds
+
+    def result_header(self, embeds: list, verses_lists: list) -> discord.Embed:
+        descr = f'página {len(embeds)+1} de {len(verses_lists[:100])}'
+        embed = discord.Embed(title='Resultados',
+                              description=descr, color=0x00B115)
+
+        return embed
+
+    def results_main(self, embed: discord.Embed, lst: list, search: str) -> discord.Embed:
+        for info in lst:
+            verse = self.highlight_search(info['text'], search)
+
+            name = f"{info['book']['name']} {info['chapter']}:{info['number']}"
             value = f"{verse}\n\n"
 
             embed.add_field(name=name, value=value, inline=False)
@@ -250,6 +282,11 @@ class Bible(commands.Cog):
 
         return text
 
+    def split_list(self, lst: list, limit: int) -> list:
+        newlist = [lst[i:i + limit] for i in range(0, len(lst), limit)]
+
+        return newlist
+
     def post_request(self, search: str) -> dict:
         data = {"version": "nvi", "search": search}
         headers = {'Authorization': f'Beare {BIBLE}'}
@@ -264,15 +301,17 @@ class Bible(commands.Cog):
 
         return requests.get(url, headers=headers).json()
 
-    async def pages(self, ctx, reply, embeds):
+    async def create_pages(self, ctx, reply, embeds: list):
         await reply.add_reaction("◀️")
         await reply.add_reaction("▶️")
 
         def check(react, usr):
             return usr == ctx.author and str(react.emoji) in ["◀️", "▶️"]
 
-        cur_page = 0
+        await self.timeout_pages(reply, embeds, check)
 
+    async def timeout_pages(self, reply, embeds: list, check):
+        cur_page = 0
         while True:
             try:
                 reaction, user = await self.bot.wait_for("reaction_add", timeout=600, check=check)
@@ -284,7 +323,7 @@ class Bible(commands.Cog):
 
                 break
 
-    async def switch_pages(self, reply, embeds, reaction, user, cur_page) -> int:
+    async def switch_pages(self, reply, embeds, reaction, user, cur_page: int) -> int:
         if str(reaction.emoji) == "▶️" and cur_page != len(embeds) - 1:
             cur_page += 1
             await reply.edit(embed=embeds[cur_page])
