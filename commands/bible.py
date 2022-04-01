@@ -135,7 +135,7 @@ class Bible(commands.Cog):
 
     @commands.command(name='chapter', help='Mostra todos os versículos de um capítulo', description="Livro Capítulo")
     async def chapter(self, ctx, book: str = '', chapter: str = ''):
-        if ctx.channel.type == discord.ChannelType.private: 
+        if ctx.channel.type == discord.ChannelType.private:
             return
 
         book = unidecode(book).lower()
@@ -208,16 +208,16 @@ class Bible(commands.Cog):
 
     @commands.command(name='search', help='Pesquisa por palavra', description="Palavra(s)")
     async def search(self, ctx, *, search: str = ''):
-        if ctx.channel.type == discord.ChannelType.private: 
+        if ctx.channel.type == discord.ChannelType.private:
             return
 
         if search:
             await self.loadMessage(ctx, search)
-            
+
         else:
             response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
             await ctx.reply(response,  mention_author=False)
-    
+
     async def loadMessage(self, ctx, search):
         loadembed = self.loadembed()
         reply = await ctx.reply(embed=loadembed, mention_author=False)
@@ -235,7 +235,7 @@ class Bible(commands.Cog):
         title = 'Buscando 🔎'
         descr = 'Isso pode demorar alguns segundos'
         embed = discord.Embed(title=title, description=descr, color=COLOR)
-        
+
         return embed
 
     def get_embeds_search(self, search: str) -> list:
