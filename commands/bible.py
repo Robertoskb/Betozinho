@@ -102,8 +102,8 @@ class Bible(commands.Cog):
     async def verse(self, ctx, book: str = '', chapter_verse: str = ''):
         book = unidecode(book).lower()
         pattern = re.compile('.:.').findall(chapter_verse)
+        
         abbrevs = self.BibleBooks()
-
         if book in abbrevs and pattern:
             embed = self.get_verse(abbrevs[book], chapter_verse.split(':'))
             reply = ctx.reply(embed=embed, mention_author=False)
