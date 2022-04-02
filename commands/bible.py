@@ -253,9 +253,8 @@ class Bible(commands.Cog):
 
     async def loadMessage(self, ctx, search):
         loadembed = self.loadembed()
-        reply = ctx.reply(embed=loadembed, mention_author=False)
+        reply = await ctx.reply(embed=loadembed, mention_author=False)
 
-        await reply
         await self.editsearch(ctx, reply, search)
 
     async def editsearch(self, ctx, reply, search):
