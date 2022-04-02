@@ -38,7 +38,6 @@ class Bible(commands.Cog):
 
     def allBooks(self) -> discord.Embed:
         books = self.get_request(f'{API}/books')
-
         value = self.testaments_books(books)
 
         embed = discord.Embed(color=COLOR)
@@ -102,7 +101,7 @@ class Bible(commands.Cog):
     async def verse(self, ctx, book: str = '', chapter_verse: str = ''):
         book = unidecode(book).lower()
         pattern = re.compile('.:.').findall(chapter_verse)
-        
+
         abbrevs = self.BibleBooks()
         if book in abbrevs and pattern:
             embed = self.get_verse(abbrevs[book], chapter_verse.split(':'))
@@ -130,6 +129,40 @@ class Bible(commands.Cog):
             descr = "Verifique se você digitou **Capítulo:Versículo** existentes"
 
         embed = discord.Embed(title=title, description=descr, color=COLOR)
+
+        return embed
+
+    @commands.command(name='randverse', help='Mostra um versículo aleatório', description="opcionalmente um Livro")
+    async def randverse(self, ctx, book: str = ''):
+        book = unidecode(book).lower()
+        abbrevs = self.BibleBooks()
+
+        if not book:
+            embed = self.get_random_verse()
+            reply = ctx.reply(embed=embed, mention_author=False)
+
+        elif book in abbrevs:
+            abbrev = f'/{abbrevs[book]}'
+            embed = self.get_random_verse(abbrev)
+            reply = ctx.reply(embed=embed, mention_author=False)
+
+        else:
+            response = 'Tente digitar **randverse** e opcionalmente um Livro existente'
+            reply = ctx.reply(response, mention_author=False)
+
+        await reply
+
+    def get_random_verse(self, abbrev: str = '') -> discord.Embed:
+        url = f'{API}/verses/nvi{abbrev}/random'
+        verse = self.get_request(url)
+        embed = self.create_embed_random_verse(verse)
+
+        return embed
+
+    def create_embed_random_verse(self, verse: dict) -> discord.Embed:
+        title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']}"
+        embed = discord.Embed(
+            title=title, description=verse['text'], color=COLOR)
 
         return embed
 
@@ -220,8 +253,9 @@ class Bible(commands.Cog):
 
     async def loadMessage(self, ctx, search):
         loadembed = self.loadembed()
-        reply = await ctx.reply(embed=loadembed, mention_author=False)
+        reply = ctx.reply(embed=loadembed, mention_author=False)
 
+        await reply
         await self.editsearch(ctx, reply, search)
 
     async def editsearch(self, ctx, reply, search):
@@ -246,15 +280,15 @@ class Bible(commands.Cog):
 
     def check_search(self, verses, search: str) -> list:
         if 'verses' in verses and verses['verses']:
-            embed = self.create_embeds_search(verses, search)
+            embeds = self.create_embeds_search(verses, search)
 
         else:
             title = 'Nada encontrado'
             descr = f'Nenhum resultado para **{search[:55]}...**'
-            embed = [discord.Embed(
+            embeds = [discord.Embed(
                 title=title, description=descr, color=COLOR)]
 
-        return embed
+        return embeds
 
     def create_embeds_search(self, verses: list, search: str) -> list:
         verses_lists = self.split_list(verses['verses'], 5)
@@ -361,6 +395,12 @@ class Bible(commands.Cog):
             Dict = json.load(j)
 
         return Dict
+
+    async def cog_command_error(self, ctx, error):
+        response = "Epa, entupigaitei X_X"
+        await ctx.reply(response, mention_author=False)
+
+        print(error)
 
 
 def setup(bot):
