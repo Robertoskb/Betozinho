@@ -175,9 +175,9 @@ class Bible(commands.Cog):
 
     def get_embeds_verses(self, verses: dict) -> list:
         verses_list = [v for v in verses['verses']]
-        verses_list = self.split_list(verses_list, 25)
+        verses_lists = self.split_list(verses_list, 15)
 
-        return self.create_embeds_verses(verses, verses_list)
+        return self.create_embeds_verses(verses, verses_lists)
 
     def create_embeds_verses(self, verses: dict, verses_lists: list) -> list:
         embeds = []
