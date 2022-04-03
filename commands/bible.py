@@ -8,10 +8,11 @@ import asyncio
 from discord.ext import commands
 from decouple import config
 from unidecode import unidecode
+from aiohttp import ClientSession
 
-BIBLE = config('bible')
-COLOR = 0x00B115
 API = "https://www.abibliadigital.com.br/api"
+HEADERS = {'Authorization': f'Beare {config("bible")}'}
+COLOR = 0x00B115
 
 
 class Bible(commands.Cog):
@@ -273,11 +274,17 @@ class Bible(commands.Cog):
         await self.editsearch(ctx, reply, search)
 
     async def editsearch(self, ctx, reply, search):
-        embeds = self.get_embeds_search(search)
+        embeds = await self.get_embeds_search(search)
         await reply.edit(embed=embeds[0])
 
         if len(embeds) > 1:
             await self.create_pages(ctx, reply, embeds)
+
+    async def get_embeds_search(self, search: str) -> list:
+        verses = await self.post_request(search)
+        embeds = self.check_search(verses, search)
+
+        return embeds
 
     def loadembed(self) -> discord.Embed:
         title = 'Buscando 🔎'
@@ -285,12 +292,6 @@ class Bible(commands.Cog):
         embed = discord.Embed(title=title, description=descr, color=COLOR)
 
         return embed
-
-    def get_embeds_search(self, search: str) -> list:
-        verses = self.post_request(search)
-        embeds = self.check_search(verses, search)
-
-        return embeds
 
     def check_search(self, verses, search: str) -> list:
         if 'verses' in verses and verses['verses']:
@@ -356,19 +357,17 @@ class Bible(commands.Cog):
 
         return newlist
 
-    def post_request(self, search: str) -> dict:
+    async def post_request(self, search: str) -> dict:
         data = {"version": "nvi", "search": search}
-        headers = {'Authorization': f'Beare {BIBLE}'}
         url = f'{API}/verses/search'
 
-        request = requests.post(url, json=data, headers=headers)
-
-        return request.json()
+        async with ClientSession() as Session:
+            async with Session.post(url, headers=HEADERS, json=data) as request:
+                return await request.json()
 
     def get_request(self, url: str) -> dict:
-        headers = {'Authorization': f'Beare {BIBLE}'}
-
-        return requests.get(url, headers=headers).json()
+        request = requests.get(url, headers=HEADERS)
+        return request.json()
 
     async def create_pages(self, ctx, reply, embeds: list):
         await reply.add_reaction("◀️")
