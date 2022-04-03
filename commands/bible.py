@@ -261,17 +261,18 @@ class Bible(commands.Cog):
             return
 
         if search:
-            await self.loadMessage(ctx, search)
+            reply = await self.loadingMessage(ctx)
+            await self.editsearch(ctx, reply, search)
 
         else:
             response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
-            await ctx.reply(response,  mention_author=False)
+            await ctx.reply(response, mention_author=False)
 
-    async def loadMessage(self, ctx, search):
+    async def loadingMessage(self, ctx):
         loadembed = self.loadembed()
         reply = await ctx.reply(embed=loadembed, mention_author=False)
 
-        await self.editsearch(ctx, reply, search)
+        return reply
 
     async def editsearch(self, ctx, reply, search):
         embeds = await self.get_embeds_search(search)
