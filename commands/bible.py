@@ -67,7 +67,7 @@ class Bible(commands.Cog):
 
         return testaments
 
-    @commands.command(name='book', help='Informações de um livro Bíblia', description="Livro")
+    @commands.command(name='book', help='Informações sobre um livro da Bíblia', description="Livro")
     async def book(self, ctx, book: str = ''):
         book = unidecode(book).lower()
         abbrevs = self.BibleBooks()
@@ -104,7 +104,7 @@ class Bible(commands.Cog):
 
         abbrevs = self.BibleBooks()
         if book in abbrevs and pattern:
-            embed = self.get_verse(abbrevs[book], chapter_verse.split(':'))
+            embed = self.get_verse(abbrevs[book], chapter_verse)
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
@@ -113,20 +113,33 @@ class Bible(commands.Cog):
 
         await reply
 
-    def get_verse(self, abbrev: str, cv: list) -> discord.Embed:
+    def get_verse(self, abbrev: str, cv: str) -> discord.Embed:
+        cv = cv.split(':')
         url = f'{API}/verses/nvi/{abbrev}/{cv[0]}/{cv[1]}'
         verse = self.get_request(url)
 
-        return self.check_verse(verse, cv)
+        return self.check_verse(verse)
 
-    def check_verse(self, verse, cv: list) -> discord.Embed:
+    def check_verse(self, verse) -> discord.Embed:
         if 'text' in verse:
-            title = f"{verse['book']['name']} {cv[0]}:{cv[1]}"
-            descr = verse['text']
+            embed = self.embed_verse(verse)
 
         else:
-            title = "Nada encontrado"
-            descr = "Verifique se você digitou **Capítulo:Versículo** existentes"
+            embed = self.no_verse()
+
+        return embed
+
+    def embed_verse(self, verse: dict) -> discord.Embed:
+        title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']}"
+        descr = verse['text']
+
+        embed = discord.Embed(title=title, description=descr, color=COLOR)
+
+        return embed
+
+    def no_verse(self) -> discord.Embed:
+        title = "Nada encontrado"
+        descr = "Verifique se você digitou **Capítulo:Versículo** existentes"
 
         embed = discord.Embed(title=title, description=descr, color=COLOR)
 
@@ -142,12 +155,11 @@ class Bible(commands.Cog):
             reply = ctx.reply(embed=embed, mention_author=False)
 
         elif book in abbrevs:
-            abbrev = f'/{abbrevs[book]}'
-            embed = self.get_random_verse(abbrev)
+            embed = self.get_random_verse(f'/{abbrevs[book]}')
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
-            response = 'Tente digitar **randverse** e opcionalmente um Livro existente'
+            response = 'Tente digitar **-randverse** e opcionalmente um livro existente'
             reply = ctx.reply(response, mention_author=False)
 
         await reply
@@ -197,14 +209,17 @@ class Bible(commands.Cog):
             embeds = self.get_embeds_verses(chap)
 
         else:
-            title = 'Capítulo não encontrado'
-            descr = 'Digite um capítulo existente no livro'
-            embed = discord.Embed(
-                title=title, description=descr, color=COLOR)
-
-            embeds = [embed]
+            embeds = self.no_chapter()
 
         return embeds
+
+    def no_chapter(self) -> list:
+        title = 'Capítulo não encontrado'
+        descr = 'Digite um capítulo existente no livro'
+        embed = discord.Embed(
+            title=title, description=descr, color=COLOR)
+
+        return [embed]
 
     def get_embeds_verses(self, verses: dict) -> list:
         verses_list = [v for v in verses['verses']]
@@ -282,12 +297,17 @@ class Bible(commands.Cog):
             embeds = self.create_embeds_search(verses, search)
 
         else:
-            title = 'Nada encontrado'
-            descr = f'Nenhum resultado para **{search[:55]}...**'
-            embeds = [discord.Embed(
-                title=title, description=descr, color=COLOR)]
+            embeds = self.not_results(search)
 
         return embeds
+
+    def not_results(self, search: str) -> list:
+        title = 'Nada encontrado'
+        descr = f'Nenhum resultado para **{search[:55]}...**'
+        embed = discord.Embed(
+            title=title, description=descr, color=COLOR)
+
+        return [embed]
 
     def create_embeds_search(self, verses: list, search: str) -> list:
         verses_lists = self.split_list(verses['verses'], 5)
