@@ -405,7 +405,7 @@ class Bible(commands.Cog):
 
         return cur_page
 
-    def get_abbrev(self, book: str) -> dict:
+    def get_abbrev(self, book: str) -> str:
         arq = os.path.join(sys.path[0], 'dicts/dictforbible.json')
         with open(arq, encoding='utf-8') as j:
             Dict = json.load(j)
