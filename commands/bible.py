@@ -1,3 +1,4 @@
+from urllib import response
 import requests
 import discord
 import re
@@ -23,7 +24,6 @@ class Bible(commands.Cog):
 
     @commands.command(name='books', help='Mostra todos os livros da Bíblia', description="opcionalmente VT ou NT")
     async def books(self, ctx, testament: str = ''):
-
         if not testament:
             embed = self.allBooks()
 
@@ -70,21 +70,28 @@ class Bible(commands.Cog):
 
     @commands.command(name='book', help='Informações sobre um livro da Bíblia', description="Livro")
     async def book(self, ctx, book: str = ''):
-        book = unidecode(book).lower()
-        abbrevs = self.BibleBooks()
-
-        if book in abbrevs:
-            embed = self.bookInfos(abbrevs[book])
+        if book:
+            embed = self.check_book(book)
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
-            response = 'Tente digitar **-book Livro** corretamente'
+            response = 'Tente digitar **-book Livro**'
             reply = ctx.reply(response, mention_author=False)
 
         await reply
 
-    def bookInfos(self, abbrev: str) -> discord.Embed:
-        book = self.get_request(f'{API}/books/{abbrev}')
+    def check_book(self, book: str) -> discord.Embed:
+        book = self.get_request(f'{API}/books/{self.get_abbrev(book)}')
+
+        if book.get('abbrev'):
+            embed = self.bookInfos(book)
+
+        else:
+            embed = self.request_msg(book.get('msg'))
+
+        return embed
+
+    def bookInfos(self, book: dict) -> discord.Embed:
         testaments = {'VT': 'Antigo Testamento', 'NT': 'Novo Testamento'}
 
         embed = discord.Embed(color=COLOR)
@@ -100,23 +107,21 @@ class Bible(commands.Cog):
 
     @commands.command(name='verse', help='Mostra um versículo escolhido', description="Livro Capítulo:Versículo")
     async def verse(self, ctx, book: str = '', chapter_verse: str = ''):
-        book = unidecode(book).lower()
         pattern = re.compile('.:.').findall(chapter_verse)
 
-        abbrevs = self.BibleBooks()
-        if book in abbrevs and pattern:
-            embed = self.get_verse(abbrevs[book], chapter_verse)
+        if book and pattern:
+            embed = self.get_verse(book, chapter_verse)
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
-            response = 'Tente digitar **-verse Livro Capítulo:Versículo** corretamente'
+            response = 'Tente digitar **-verse Livro Capítulo:Versículo**'
             reply = ctx.reply(response, mention_author=False)
 
         await reply
 
-    def get_verse(self, abbrev: str, cv: str) -> discord.Embed:
+    def get_verse(self, book: str, cv: str) -> discord.Embed:
         cv = cv.split(':')
-        url = f'{API}/verses/nvi/{abbrev}/{cv[0]}/{cv[1]}'
+        url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{cv[0]}/{cv[1]}'
         verse = self.get_request(url)
 
         return self.check_verse(verse)
@@ -126,7 +131,7 @@ class Bible(commands.Cog):
             embed = self.embed_verse(verse)
 
         else:
-            embed = self.no_verse()
+            embed = self.request_msg(verse.get('msg'))
 
         return embed
 
@@ -138,39 +143,31 @@ class Bible(commands.Cog):
 
         return embed
 
-    def no_verse(self) -> discord.Embed:
-        title = "Nada encontrado"
-        descr = "Verifique se você digitou **Capítulo:Versículo** existentes"
-
-        embed = discord.Embed(title=title, description=descr, color=COLOR)
-
-        return embed
-
     @commands.command(name='randverse', help='Mostra um versículo aleatório', description="opcionalmente um Livro")
     async def randverse(self, ctx, book: str = ''):
-        book = unidecode(book).lower()
-        abbrevs = self.BibleBooks()
-
         if not book:
             embed = self.get_random_verse()
             reply = ctx.reply(embed=embed, mention_author=False)
 
-        elif book in abbrevs:
-            embed = self.get_random_verse(f'/{abbrevs[book]}')
-            reply = ctx.reply(embed=embed, mention_author=False)
-
         else:
-            response = 'Tente digitar **-randverse** e opcionalmente um livro existente'
-            reply = ctx.reply(response, mention_author=False)
+            embed = self.get_random_verse(f'/{self.get_abbrev(book)}')
+            reply = ctx.reply(embed=embed, mention_author=False)
 
         await reply
 
-    def get_random_verse(self, abbrev: str = '') -> discord.Embed:
-        url = f'{API}/verses/nvi{abbrev}/random'
+    def get_random_verse(self, book: str = '') -> discord.Embed:
+        url = f'{API}/verses/nvi{book}/random'
         verse = self.get_request(url)
-        embed = self.create_embed_random_verse(verse)
+        embed = self.check_randverse(verse)
 
         return embed
+
+    def check_randverse(self, verse: dict) -> discord.Embed:
+        if verse.get('text'):
+            return self.create_embed_random_verse(verse)
+
+        else:
+            return self.request_msg(verse.get('msg'))
 
     def create_embed_random_verse(self, verse: dict) -> discord.Embed:
         title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']}"
@@ -184,43 +181,32 @@ class Bible(commands.Cog):
         if ctx.channel.type == discord.ChannelType.private:
             return
 
-        book = unidecode(book).lower()
-        abbrevs = self.BibleBooks()
-
-        if book in abbrevs and chapter:
-            embeds = self.get_chapter(abbrevs[book], chapter)
+        if book and chapter:
+            embeds = self.get_chapter(book, chapter)
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
 
             if len(embeds) > 1:
                 await self.create_pages(ctx, reply, embeds)
 
         else:
-            response = 'Tente digitar **-chapter Livro Capítulo** corretamente'
+            response = 'Tente digitar **-chapter Livro Capítulo**'
             await ctx.reply(response, mention_author=False)
 
-    def get_chapter(self, abbrev: str, chapter: str) -> list:
-        url = f'{API}/verses/nvi/{abbrev}/{chapter}'
+    def get_chapter(self, book: str, chapter: str) -> list:
+        url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{chapter}'
         chap = self.get_request(url)
         embeds = self.check_chapter(chap)
 
         return embeds
 
     def check_chapter(self, chap: dict) -> list:
-        if 'verses' in chap:
+        if chap.get('verses'):
             embeds = self.get_embeds_verses(chap)
 
         else:
-            embeds = self.no_chapter()
+            embeds = [self.request_msg(chap.get('msg'))]
 
         return embeds
-
-    def no_chapter(self) -> list:
-        title = 'Capítulo não encontrado'
-        descr = 'Digite um capítulo existente no livro'
-        embed = discord.Embed(
-            title=title, description=descr, color=COLOR)
-
-        return [embed]
 
     def get_embeds_verses(self, verses: dict) -> list:
         verses_list = [v for v in verses['verses']]
@@ -265,7 +251,7 @@ class Bible(commands.Cog):
             await self.editsearch(ctx, reply, search)
 
         else:
-            response = 'Tente digitar **-search** e a(s) palavra(s) que queira pesquisar'
+            response = 'Tente digitar **-search** e a(s) palavra(s) você quer pesquisar'
             await ctx.reply(response, mention_author=False)
 
     async def loadingMessage(self, ctx):
@@ -295,7 +281,7 @@ class Bible(commands.Cog):
         return embed
 
     def check_search(self, verses, search: str) -> list:
-        if 'verses' in verses and verses['verses']:
+        if verses.get('verses'):
             embeds = self.create_embeds_search(verses, search)
 
         else:
@@ -358,17 +344,29 @@ class Bible(commands.Cog):
 
         return newlist
 
+    def get_request(self, url: str) -> dict:
+        request = requests.get(url, headers=HEADERS)
+        return request.json()
+
+    def request_msg(self, msg: str) -> discord.Embed:
+        msgs = {
+            'Book not found': 'Livro não econtrado',
+            'Chapter not found': 'Capítulo não econtrado',
+            'Verse not found': 'Versículo não econtrado',
+        }
+
+        response = msgs.get(msg) or 'Erro desconhecido'
+        embed = discord.Embed(title='Nada encontrado', description=response, color=COLOR)
+
+        return embed
+
     async def post_request(self, search: str) -> dict:
         data = {"version": "nvi", "search": search}
         url = f'{API}/verses/search'
 
-        async with ClientSession() as Session:
+        async with ClientSession(trust_env=True) as Session:
             async with Session.post(url, headers=HEADERS, json=data) as request:
                 return await request.json()
-
-    def get_request(self, url: str) -> dict:
-        request = requests.get(url, headers=HEADERS)
-        return request.json()
 
     async def create_pages(self, ctx, reply, embeds: list):
         await reply.add_reaction("◀️")
@@ -408,12 +406,12 @@ class Bible(commands.Cog):
 
         return cur_page
 
-    def BibleBooks(self) -> dict:
+    def get_abbrev(self, book: str) -> dict:
         arq = os.path.join(sys.path[0], 'dicts/dictforbible.json')
         with open(arq, encoding='utf-8') as j:
             Dict = json.load(j)
 
-        return Dict
+        return Dict.get(unidecode(book).lower())
 
     async def cog_command_error(self, ctx, error):
         response = "Epa, entupigaitei X_X"
