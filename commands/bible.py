@@ -1,12 +1,11 @@
-from urllib import response
-import requests
 import discord
+import requests
 import re
 import sys
 import os
 import json
-import asyncio
 from discord.ext import commands
+from commands.pages import Pages
 from decouple import config
 from unidecode import unidecode
 from aiohttp import ClientSession
@@ -71,7 +70,7 @@ class Bible(commands.Cog):
     @commands.command(name='book', help='Informações sobre um livro da Bíblia', description="Livro")
     async def book(self, ctx, book: str = ''):
         if book:
-            embed = self.check_book(book)
+            embed = self.get_book_infos(book)
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
@@ -80,14 +79,9 @@ class Bible(commands.Cog):
 
         await reply
 
-    def check_book(self, book: str) -> discord.Embed:
+    def get_book_infos(self, book) -> discord.Embed:
         book = self.get_request(f'{API}/books/{self.get_abbrev(book)}')
-
-        if book.get('abbrev'):
-            embed = self.bookInfos(book)
-
-        else:
-            embed = self.request_msg(book.get('msg'))
+        embed = self.general_check(book, 'abbrev', self.bookInfos)
 
         return embed
 
@@ -123,16 +117,8 @@ class Bible(commands.Cog):
         cv = cv.split(':')
         url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{cv[0]}/{cv[1]}'
         verse = self.get_request(url)
-
-        return self.check_verse(verse)
-
-    def check_verse(self, verse) -> discord.Embed:
-        if 'text' in verse:
-            embed = self.embed_verse(verse)
-
-        else:
-            embed = self.request_msg(verse.get('msg'))
-
+        embed = self.general_check(verse, 'text', self.embed_verse)
+        
         return embed
 
     def embed_verse(self, verse: dict) -> discord.Embed:
@@ -158,16 +144,10 @@ class Bible(commands.Cog):
     def get_random_verse(self, book: str = '') -> discord.Embed:
         url = f'{API}/verses/nvi{book}/random'
         verse = self.get_request(url)
-        embed = self.check_randverse(verse)
+        embed = self.general_check(
+            verse, 'text', self.create_embed_random_verse)
 
         return embed
-
-    def check_randverse(self, verse: dict) -> discord.Embed:
-        if verse.get('text'):
-            return self.create_embed_random_verse(verse)
-
-        else:
-            return self.request_msg(verse.get('msg'))
 
     def create_embed_random_verse(self, verse: dict) -> discord.Embed:
         title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']}"
@@ -186,7 +166,8 @@ class Bible(commands.Cog):
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
 
             if len(embeds) > 1:
-                await self.create_pages(ctx, reply, embeds)
+                pages = Pages(self.bot, ctx, reply, embeds)
+                await pages.create_pages()
 
         else:
             response = 'Tente digitar **-chapter Livro Capítulo**'
@@ -265,7 +246,8 @@ class Bible(commands.Cog):
         await reply.edit(embed=embeds[0])
 
         if len(embeds) > 1:
-            await self.create_pages(ctx, reply, embeds)
+            pages = Pages(self.bot ,ctx, reply, embeds)
+            await pages.create_pages()
 
     async def get_embeds_search(self, search: str) -> list:
         verses = await self.post_request(search)
@@ -280,7 +262,7 @@ class Bible(commands.Cog):
 
         return embed
 
-    def check_search(self, verses, search: str) -> list:
+    def check_search(self, verses: str, search: str) -> list:
         if verses.get('verses'):
             embeds = self.create_embeds_search(verses, search)
 
@@ -339,6 +321,15 @@ class Bible(commands.Cog):
 
         return text
 
+    def general_check(self, request: dict, key: str, method) -> discord.Embed:
+        if request.get(key):
+            embed = method(request)
+
+        else:
+            embed = self.request_msg(request.get('msg'))
+        
+        return embed
+
     def split_list(self, lst: list, limit: int) -> list:
         newlist = [lst[i:i + limit] for i in range(0, len(lst), limit)]
 
@@ -355,8 +346,9 @@ class Bible(commands.Cog):
             'Verse not found': 'Versículo não econtrado',
         }
 
-        response = msgs.get(msg) or 'Erro desconhecido'
-        embed = discord.Embed(title='Nada encontrado', description=response, color=COLOR)
+        response = msgs.get(msg, 'Erro desconhecido')
+        embed = discord.Embed(title='Nada encontrado',
+                              description=response, color=COLOR)
 
         return embed
 
@@ -368,45 +360,8 @@ class Bible(commands.Cog):
             async with Session.post(url, headers=HEADERS, json=data) as request:
                 return await request.json()
 
-    async def create_pages(self, ctx, reply, embeds: list):
-        await reply.add_reaction("◀️")
-        await reply.add_reaction("▶️")
 
-        def check(react, usr):
-            return usr == ctx.author and str(react.emoji) in ["◀️", "▶️"]
-
-        await self.timeout_pages(reply, embeds, check)
-
-    async def timeout_pages(self, reply, embeds: list, check):
-        cur_page = 0
-        while True:
-            try:
-                reaction, user = await self.bot.wait_for("reaction_add", timeout=600, check=check)
-                cur_page = await self.switch_pages(reply, embeds, reaction, user, cur_page)
-
-            except asyncio.TimeoutError:
-                await reply.remove_reaction("◀️", self.bot.user)
-                await reply.remove_reaction("▶️", self.bot.user)
-
-                break
-
-    async def switch_pages(self, reply, embeds, reaction, user, cur_page: int) -> int:
-        if str(reaction.emoji) == "▶️" and cur_page != len(embeds) - 1:
-            cur_page += 1
-            await reply.edit(embed=embeds[cur_page])
-            await reply.remove_reaction(reaction, user)
-
-        elif str(reaction.emoji) == "◀️" and cur_page > 0:
-            cur_page -= 1
-            await reply.edit(embed=embeds[cur_page])
-            await reply.remove_reaction(reaction, user)
-
-        else:
-            await reply.remove_reaction(reaction, user)
-
-        return cur_page
-
-    def get_abbrev(self, book: str) -> dict:
+    def get_abbrev(self, book: str) -> str:
         arq = os.path.join(sys.path[0], 'dicts/dictforbible.json')
         with open(arq, encoding='utf-8') as j:
             Dict = json.load(j)
@@ -416,7 +371,7 @@ class Bible(commands.Cog):
     async def cog_command_error(self, ctx, error):
         response = "Epa, entupigaitei X_X"
         await ctx.reply(response, mention_author=False)
-
+        
         print(error)
 
 
