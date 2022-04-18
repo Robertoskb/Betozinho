@@ -12,17 +12,15 @@ class Talks(commands.Cog):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_message(self, message) -> None:
+    async def on_message(self, message):
         if message.author == self.bot.user:
             return
 
         msgtype = self.get_MsgType(message)
         events = self.Responses(message)
 
-        if msgtype in events:
-            response = events[msgtype]
-
-            await message.reply(response, mention_author=False)
+        if events.get(msgtype):
+            await message.reply(events[msgtype], mention_author=False)
 
     def get_MsgType(self, message) -> str:
         typesdict = self.BotDict('input')

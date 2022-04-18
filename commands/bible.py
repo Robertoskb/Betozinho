@@ -101,7 +101,7 @@ class Bible(commands.Cog):
 
     @commands.command(name='verse', help='Mostra um versículo escolhido', description="Livro Capítulo:Versículo")
     async def verse(self, ctx, book: str = '', chapter_verse: str = ''):
-        pattern = re.compile('.:.').findall(chapter_verse)
+        pattern = re.compile('\d:\d').findall(chapter_verse)
 
         if book and pattern:
             embed = self.get_verse(book, chapter_verse)
@@ -114,8 +114,7 @@ class Bible(commands.Cog):
         await reply
 
     def get_verse(self, book: str, cv: str) -> discord.Embed:
-        cv = cv.split(':')
-        url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{cv[0]}/{cv[1]}'
+        url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{cv.replace(":", "/")}'
         verse = self.get_request(url)
         embed = self.general_check(verse, 'text', self.embed_verse)
         

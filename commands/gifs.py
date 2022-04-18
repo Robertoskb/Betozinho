@@ -13,37 +13,25 @@ class Gifs(commands.Cog):
         self.bot = bot
 
     @commands.command(name='slap', help='Dar um tapa no seu amiguinho', description='@user')
-    async def slap(self, ctx, mention: discord.User = None):
-        if mention is None:
-            return await ctx.reply('Você precisa mencionar alguém', mention_author=False)
+    async def slap(self, ctx, mention: discord.User):
+        desc = f'**{ctx.author.name}** deu um tapa em **{mention.name}** D:'
+        embed = self.create_embed('slap', desc)
 
-        else:
-            desc = f'**{ctx.author.name}** deu um tapa em **{mention.name}** D:'
-            embed = self.create_embed('slap', desc)
-
-            await ctx.channel.send(embed=embed)
+        await ctx.channel.send(embed=embed)
 
     @commands.command(name='hug', help='Dar um abraço no seu amiguinho', description='@user')
-    async def hug(self, ctx, mention: discord.User = None):
-        if mention is None:
-            return await ctx.reply('Você precisa mencionar alguém', mention_author=False)
+    async def hug(self, ctx, mention: discord.User):
+        desc = f'**{ctx.author.name}** deu um abraço em **{mention.name}**'
+        embed = self.create_embed('hug', desc)
 
-        else:
-            desc = f'**{ctx.author.name}** deu um abraço em **{mention.name}**'
-            embed = self.create_embed('hug', desc)
-
-            await ctx.channel.send(embed=embed)
+        await ctx.channel.send(embed=embed)
 
     @commands.command(name='pat', help='Dar um cafuné no seu amiguinho', description='@user')
-    async def pat(self, ctx, mention: discord.User = None):
-        if mention is None:
-            return await ctx.reply('Você precisa mencionar alguém', mention_author=False)
+    async def pat(self, ctx, mention: discord.User):
+        desc = f'**{ctx.author.name}** deu um cafuné em **{mention.name}** ^^'
+        embed = self.create_embed('pat', desc)
 
-        else:
-            desc = f'**{ctx.author.name}** deu um cafuné em **{mention.name}** ^^'
-            embed = self.create_embed('pat', desc)
-
-            await ctx.channel.send(embed=embed)
+        await ctx.channel.send(embed=embed)
 
     @commands.command(name='amazing', help='Incrível', description='sem argumentos')
     async def amazing(self, ctx):
@@ -119,7 +107,7 @@ class Gifs(commands.Cog):
         return embed
 
     async def cog_command_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument):
+        if isinstance(error, commands.BadArgument) or (error, commands.MissingRequiredArgument):
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
 
 

@@ -8,13 +8,13 @@ class Help(commands.Cog):
         self.bot = bot
 
     @commands.command(name='help', aliases=['h'], help='The help command!', description='[command]')
-    async def help(self, ctx, command_name: str = None):
+    async def help(self, ctx, command_name: str = ''):
         embed = discord.Embed(title='Help Commands!', color=0x00B115)
 
-        if command_name is None:
+        if not command_name:
             embed = self.commandList(embed)
         else:
-            embed = self.especificCommand(embed, command_name)
+            embed = self.especificCommand(embed, command_name.lower())
 
         await ctx.channel.send(embed=embed)
 
@@ -41,10 +41,10 @@ class Help(commands.Cog):
                 if command.parent != None:
                     continue
 
-                if command.name == command_name:
+                if command.name == command_name.lower():
                     commandhelp = f'**-{command.name}  {command.description}**'
                     embed.add_field(
-                        name=cog, value=f"{commandhelp}", inline=False)
+                        name=cog, value=commandhelp, inline=False)
 
                     return embed
 
@@ -52,8 +52,7 @@ class Help(commands.Cog):
 
     def especificCog(self, embed: discord.Embed, cog_name: str) -> discord.Embed:
         commandList = ""
-        cog_name = cog_name.lower().capitalize()
-        for command in self.bot.get_cog(cog_name).walk_commands():
+        for command in self.bot.get_cog(cog_name.capitalize()).walk_commands():
             if command.hidden:
                 continue
             if command.parent != None:
@@ -61,7 +60,7 @@ class Help(commands.Cog):
 
             commandList += f'**-{command.name}**  *{command.help}*\n'
 
-        embed.add_field(name=cog_name, value=commandList, inline=False)
+        embed.add_field(name=cog_name.capitalize(), value=commandList, inline=False)
         embed.add_field(name='Help', value='**-help [comando]**', inline=False)
 
         return embed
@@ -74,8 +73,11 @@ class Help(commands.Cog):
 
         return cogs
 
-    async def cog_command_error(self, ctx, error):
-        pass
+    async def cog_command_error(self, _, error):
+        if isinstance(error, AttributeError):
+            pass
+        else:
+            print(error)
 
 
 def setup(bot):
