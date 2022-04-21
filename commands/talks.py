@@ -41,8 +41,10 @@ class Talks(commands.Cog):
                 case1 = f'"{item}"' in msg
                 case2 = f"'{item}'" in msg
 
-                if case1 or case2: continue
-                if item in msg: msgtype = Type
+                if case1 or case2:
+                    continue
+                if item in msg:
+                    msgtype = Type
 
         return msgtype
 
@@ -61,7 +63,7 @@ class Talks(commands.Cog):
             Dict = json.load(j)
 
         return Dict[mode]
-    
+
     def check_settings(self, message) -> int:
         if message.channel.type == discord.ChannelType.private:
             return 1
@@ -71,6 +73,7 @@ class Talks(commands.Cog):
     async def cog_command_error(self, _, error):
         print(error)
         pass
+
 
 def setup(bot):
     bot.add_cog(Talks(bot))
