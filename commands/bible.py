@@ -6,7 +6,7 @@ import os
 import json
 from discord.ext import commands
 from commands.utils.pages import Pages
-from commands.utils.database import Settings
+from commands.utils.serversettings import Settings
 from decouple import config
 from unidecode import unidecode
 from aiohttp import ClientSession

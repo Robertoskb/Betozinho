@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from commands.utils.database import ServerSettings
+from commands.utils.serversettings import ServerSettings
 from awaits.awaitable import awaitable
 
 

@@ -4,7 +4,7 @@ import json
 import os
 import sys
 from discord.ext import commands
-from commands.utils.database import Settings
+from commands.utils.serversettings import Settings
 
 
 class Talks(commands.Cog):
