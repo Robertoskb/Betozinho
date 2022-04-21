@@ -1,8 +1,10 @@
+import discord
 import random
 import json
 import os
 import sys
 from discord.ext import commands
+from commands.utils.database import Settings
 
 
 class Talks(commands.Cog):
@@ -14,6 +16,8 @@ class Talks(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if message.author == self.bot.user:
+            return
+        if not self.check_settings(message):
             return
 
         msgtype = self.get_MsgType(message)
@@ -57,7 +61,16 @@ class Talks(commands.Cog):
             Dict = json.load(j)
 
         return Dict[mode]
+    
+    def check_settings(self, message) -> int:
+        if message.channel.type == discord.ChannelType.private:
+            return 1
+        else:
+            return Settings(message.guild.id, 'talks')
 
+    async def cog_command_error(self, _, error):
+        print(error)
+        pass
 
 def setup(bot):
     bot.add_cog(Talks(bot))

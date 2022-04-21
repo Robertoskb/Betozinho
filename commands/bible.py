@@ -5,7 +5,8 @@ import sys
 import os
 import json
 from discord.ext import commands
-from commands.pages import Pages
+from commands.utils.pages import Pages
+from commands.utils.database import Settings
 from decouple import config
 from unidecode import unidecode
 from aiohttp import ClientSession
@@ -104,7 +105,7 @@ class Bible(commands.Cog):
         pattern = re.compile('\d:\d').findall(chapter_verse)
 
         if book and pattern:
-            embed = self.get_verse(book, chapter_verse)
+            embed = self.get_verse(self.get_lang(ctx), book, chapter_verse)
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
@@ -113,8 +114,8 @@ class Bible(commands.Cog):
 
         await reply
 
-    def get_verse(self, book: str, cv: str) -> discord.Embed:
-        url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{cv.replace(":", "/")}'
+    def get_verse(self,lang, book: str, cv: str) -> discord.Embed:
+        url = f'{API}/verses/{lang}/{self.get_abbrev(book)}/{cv.replace(":", "/")}'
         verse = self.get_request(url)
         embed = self.general_check(verse, 'text', self.embed_verse)
         
@@ -130,18 +131,19 @@ class Bible(commands.Cog):
 
     @commands.command(name='randverse', help='Mostra um versículo aleatório', description="opcionalmente um Livro")
     async def randverse(self, ctx, book: str = ''):
+       
         if not book:
-            embed = self.get_random_verse()
+            embed = self.get_random_verse(self.get_lang(ctx))
             reply = ctx.reply(embed=embed, mention_author=False)
 
         else:
-            embed = self.get_random_verse(f'/{self.get_abbrev(book)}')
+            embed = self.get_random_verse(self.get_lang(ctx), f'/{self.get_abbrev(book)}')
             reply = ctx.reply(embed=embed, mention_author=False)
 
         await reply
 
-    def get_random_verse(self, book: str = '') -> discord.Embed:
-        url = f'{API}/verses/nvi{book}/random'
+    def get_random_verse(self,lang, book: str = '') -> discord.Embed:
+        url = f'{API}/verses/{lang}{book}/random'
         verse = self.get_request(url)
         embed = self.general_check(
             verse, 'text', self.create_embed_random_verse)
@@ -161,7 +163,7 @@ class Bible(commands.Cog):
             return
 
         if book and chapter:
-            embeds = self.get_chapter(book, chapter)
+            embeds = self.get_chapter(self.get_lang(ctx), book, chapter)
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
 
             if len(embeds) > 1:
@@ -172,8 +174,8 @@ class Bible(commands.Cog):
             response = 'Tente digitar **-chapter Livro Capítulo**'
             await ctx.reply(response, mention_author=False)
 
-    def get_chapter(self, book: str, chapter: str) -> list:
-        url = f'{API}/verses/nvi/{self.get_abbrev(book)}/{chapter}'
+    def get_chapter(self, lang, book: str, chapter: str) -> list:
+        url = f'{API}/verses/{lang}/{self.get_abbrev(book)}/{chapter}'
         chap = self.get_request(url)
         embeds = self.check_chapter(chap)
 
@@ -241,15 +243,15 @@ class Bible(commands.Cog):
         return reply
 
     async def editsearch(self, ctx, reply, search):
-        embeds = await self.get_embeds_search(search)
+        embeds = await self.get_embeds_search(ctx, search)
         await reply.edit(embed=embeds[0])
 
         if len(embeds) > 1:
             pages = Pages(self.bot ,ctx, reply, embeds)
             await pages.create_pages()
 
-    async def get_embeds_search(self, search: str) -> list:
-        verses = await self.post_request(search)
+    async def get_embeds_search(self, ctx, search: str) -> list:
+        verses = await self.post_request(self.get_lang(ctx), search)
         embeds = self.check_search(verses, search)
 
         return embeds
@@ -351,14 +353,19 @@ class Bible(commands.Cog):
 
         return embed
 
-    async def post_request(self, search: str) -> dict:
-        data = {"version": "nvi", "search": search}
+    async def post_request(self, lang, search: str) -> dict:
+        data = {"version": lang, "search": search}
         url = f'{API}/verses/search'
 
         async with ClientSession(trust_env=True) as Session:
             async with Session.post(url, headers=HEADERS, json=data) as request:
                 return await request.json()
+    
+    def get_lang(self, ctx) -> str:
+        if ctx.channel.type == discord.ChannelType.private:
+            return 'nvi'
 
+        return Settings(ctx.guild.id,'biblelang') or 'nvi'
 
     def get_abbrev(self, book: str) -> str:
         arq = os.path.join(sys.path[0], 'dicts/dictforbible.json')
