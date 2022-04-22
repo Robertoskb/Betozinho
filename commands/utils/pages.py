@@ -14,7 +14,11 @@ class Pages:
         await self.reply.add_reaction("▶️")
 
         def check(react, usr):
-            return usr == self.ctx.author and str(react.emoji) in ["◀️", "▶️"]
+            return (
+                usr == self.ctx.author 
+                and str(react.emoji) in ["◀️", "▶️"]
+                and react.message.id == self.reply.id
+            )
 
         await self.timeout_pages(check)
 
