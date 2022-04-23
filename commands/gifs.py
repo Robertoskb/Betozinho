@@ -107,7 +107,7 @@ class Gifs(commands.Cog):
         return embed
 
     async def cog_command_error(self, ctx, error):
-        if isinstance(error, commands.BadArgument) or (error, commands.MissingRequiredArgument):
+        if isinstance(error, commands.BadArgument) or isinstance(error, commands.MissingRequiredArgument):
             await ctx.reply('Você precisa mencionar alguém', mention_author=False)
 
 

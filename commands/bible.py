@@ -6,7 +6,7 @@ import os
 import json
 from discord.ext import commands
 from commands.utils.pages import Pages
-from commands.utils.serversettings import Settings
+from commands.utils.serversettings import ServerSettings
 from decouple import config
 from unidecode import unidecode
 from aiohttp import ClientSession
@@ -122,7 +122,7 @@ class Bible(commands.Cog):
         return embed
 
     def embed_verse(self, verse: dict) -> discord.Embed:
-        title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']}"
+        title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']} ({verse['book']['version'].upper()})"
         descr = verse['text']
 
         embed = discord.Embed(title=title, description=descr, color=COLOR)
@@ -151,7 +151,7 @@ class Bible(commands.Cog):
         return embed
 
     def create_embed_random_verse(self, verse: dict) -> discord.Embed:
-        title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']}"
+        title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']} ({verse['book']['version'].upper()})"
         embed = discord.Embed(
             title=title, description=verse['text'], color=COLOR)
 
@@ -207,7 +207,7 @@ class Bible(commands.Cog):
         return embeds
 
     def chapter_header(self, verses_lists: list, verses: dict, embeds: list) -> discord.Embed:
-        title = f"{verses['book']['name']} {verses['chapter']['number']}"
+        title = f"{verses['book']['name']} {verses['chapter']['number']} ({verses['book']['version'].upper()})"
         descr = f'página {len(embeds)+1} de {len(verses_lists)}\n\n'
         embed = discord.Embed(
             title=title, description=descr, color=COLOR)
@@ -251,8 +251,9 @@ class Bible(commands.Cog):
             await pages.create_pages()
 
     async def get_embeds_search(self, ctx, search: str) -> list:
-        verses = await self.post_request(self.get_lang(ctx), search)
-        embeds = self.check_search(verses, search)
+        lang = self.get_lang(ctx)
+        verses = await self.post_request(lang, search)
+        embeds = self.check_search(verses, search, lang)
 
         return embeds
 
@@ -263,9 +264,9 @@ class Bible(commands.Cog):
 
         return embed
 
-    def check_search(self, verses: str, search: str) -> list:
+    def check_search(self, verses: str, search: str, lang: str) -> list:
         if verses.get('verses'):
-            embeds = self.create_embeds_search(verses, search)
+            embeds = self.create_embeds_search(verses, search, lang)
 
         else:
             embeds = self.not_results(search)
@@ -280,21 +281,21 @@ class Bible(commands.Cog):
 
         return [embed]
 
-    def create_embeds_search(self, verses: list, search: str) -> list:
+    def create_embeds_search(self, verses: list, search: str, lang: str) -> list:
         verses_lists = self.split_list(verses['verses'], 5)
 
         embeds = []
         for lst in verses_lists[:100]:
-            embed = self.result_header(embeds, verses_lists)
+            embed = self.result_header(embeds, verses_lists, lang)
             embed = self.results_main(embed, lst, search)
 
             embeds.append(embed)
 
         return embeds
 
-    def result_header(self, embeds: list, verses_lists: list) -> discord.Embed:
+    def result_header(self, embeds: list, verses_lists: list, lang: str) -> discord.Embed:
         descr = f'página {len(embeds)+1} de {len(verses_lists[:100])}'
-        embed = discord.Embed(title='Resultados',
+        embed = discord.Embed(title=f"Resultados em {lang.upper()}",
                               description=descr, color=COLOR)
 
         return embed
@@ -365,7 +366,11 @@ class Bible(commands.Cog):
         if ctx.channel.type == discord.ChannelType.private:
             return 'nvi'
 
-        return Settings(ctx.guild.id,'biblelang') or 'nvi'
+        server = ServerSettings(ctx.guild.id)
+        settings = server.get_settings('biblelang')
+        server.cursor.close()
+        
+        return settings
 
     def get_abbrev(self, book: str) -> str:
         arq = os.path.join(sys.path[0], 'dicts/dictforbible.json')

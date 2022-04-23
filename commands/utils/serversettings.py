@@ -12,88 +12,53 @@ con = mysql.connector.connect(host=config('host'), database=config('database'),
 TABLE = 'serversettings'
 
 
-def Settings(id: int, value: str):
-    def filt(x): return x['id'] == id
-    result = list(filter(filt, open_json(id)))
-    check = check_index(result)
-
-    return check.get(value)
-
-
-def open_json(id):
-    arq = os.path.join(sys.path[0], 'commands/utils/db.json')
-
-    try:
-        file = open(arq, 'r', encoding='utf-8')
-        lst = json.load(file)
-
-    except:
-        file = open(arq, 'wt+', encoding='utf-8')
-        ServerSettings(id).updateFile()
-        lst = json.load(file)
-
-    finally:
-        file.close()
-
-    return lst
-
-
-def check_index(lst):
-    try:
-        item = lst[0]
-
-    except IndexError:
-        item = {}
-
-    return item
-
-
 class ServerSettings():
 
     def __init__(self, server):
-        self.cursor = self.get_cursor()
-        self.server = self.checkServer(server)
+        self.cursor = self._get_cursor()
+        self.server = self._checkServer(server)
 
     def insert(self, row, value):
-        self.cursor.execute(f"INSERT INTO {TABLE} ({row}) values ('{value}')")
-        self.updateFile()
-
+        self.cursor.execute(f"INSERT INTO {TABLE} ({row}) values ({value})")
+        
         return self.select(row, value)
 
     def update(self, values):
         self.cursor.execute(
             f"UPDATE {TABLE} SET {values} where id = {self.server}")
 
-        self.updateFile()
-
         return self.select('id', self.server)
-
-    def updateFile(self):
-        self.cursor.execute(f"SELECT * from {TABLE}")
-
-        arq = os.path.join(sys.path[0], 'commands/utils/db.json')
-        with open(arq, 'w+', encoding='utf-8') as file:
-            json.dump(self.cursor.fetchall(), file)
 
     def select(self, row, value):
         self.cursor.execute(f"SELECT * from {TABLE} WHERE {row}={value}")
 
         return self.cursor.fetchone()
+    
+    def get_settings(self, row=None):
+        select = self.select('id', self.server)
+        
+        get = select if row is None else select.get(row)
+        
+        return get
 
     def reset(self):
         select = self.select('id', self.server)
+        defaults = self._get_defaults(select)
+        
+        self.update(defaults)
+        
+        return self.select('id', self.server)
 
+    def _get_defaults(self, select):
         values = ' '
         for row in select.keys():
             if row == 'id':
                 continue
-            values += f'{row}=DEFAULT,'
+            values += f'{row} = DEFAULT,'
+        
+        return values[:-1]
 
-        self.update(values[:-1])
-
-        return self.select('id', self.server)
-
-    def checkServer(self, server):
+    def _checkServer(self, server):
         select = self.select('id', server)
 
         if select is None:
@@ -101,7 +66,7 @@ class ServerSettings():
 
         return select.get('id')
 
-    def get_cursor(self):
+    def _get_cursor(self):
         try:
             cursor = con.cursor(buffered=True, dictionary=True)
 
@@ -114,11 +79,11 @@ class ServerSettings():
 
 if __name__ == '__main__':
     start = time.time()
+    
+    server = ServerSettings(947912008957845524) 
+    print(server.get_settings())
 
-    print(Settings(947912008957845524, 'talks'))
-
-    server = ServerSettings(1)
-    server.reset()
+    server.cursor.close()
 
     end = time.time()
 
