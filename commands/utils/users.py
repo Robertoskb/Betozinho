@@ -1,19 +1,19 @@
-import re
 import mysql.connector
 from decouple import config
-
-con = mysql.connector.connect(host=config('host'), database=config('database'),
-                              user=config('user'), password=config('password'),
-                              autocommit=True, use_pure=True, raise_on_warnings=True)
 TABLE = 'users'
-
 
 class User:
 
     def __init__(self, id):
         self.id = id
+        self.con = self._get_con()
         self.cursor = self._get_cursor()
         self.infos = self._get_user()
+        
+    def __del__(self):
+        if self.con.is_connected():
+            self.con.close()
+            self.cursor.close()
 
     def select(self, row, value):
         self.cursor.execute(f"SELECT * from {TABLE} WHERE {row}={value}")
@@ -43,14 +43,22 @@ class User:
         return rowcount
 
     def _get_cursor(self):
+        
         try:
-            cursor = con.cursor(buffered=True, dictionary=True)
+            cursor = self.con.cursor(buffered=True, dictionary=True)
 
         except:
-            con.reconnect()
-            cursor = con.cursor(buffered=True, dictionary=True)
+            self.con.reconnect()
+            cursor = self.con.cursor(buffered=True, dictionary=True)
 
         return cursor
+    
+    def _get_con(self):
+        con = mysql.connector.connect(host=config('host'), database=config('database'),
+        user=config('user'), password=config('password'),
+        autocommit=True, use_pure=True, raise_on_warnings=True)
+        
+        return con
 
     def _get_user(self):
         self.cursor.execute(f"SELECT * from {TABLE} WHERE id = {self.id}")

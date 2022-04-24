@@ -5,8 +5,10 @@ import sys
 import os
 import json
 from discord.ext import commands
+from awaits.awaitable import awaitable
 from commands.utils.pages import Pages
 from commands.utils.serversettings import ServerSettings
+from commands.utils.userlevels import UserLevel
 from decouple import config
 from unidecode import unidecode
 from aiohttp import ClientSession
@@ -105,20 +107,19 @@ class Bible(commands.Cog):
         pattern = re.compile('\d:\d').findall(chapter_verse)
 
         if book and pattern:
-            embed = self.get_verse(self.get_lang(ctx), book, chapter_verse)
-            reply = ctx.reply(embed=embed, mention_author=False)
+            embed = self.get_verse(await self.get_lang(ctx), book, chapter_verse)
+            await ctx.reply(embed=embed, mention_author=False)
+            await self.give_xp(ctx.author.id, 70)
 
         else:
             response = 'Tente digitar **-verse Livro Capítulo:Versículo**'
-            reply = ctx.reply(response, mention_author=False)
+            await ctx.reply(response, mention_author=False)
 
-        await reply
-
-    def get_verse(self,lang, book: str, cv: str) -> discord.Embed:
+    def get_verse(self, lang, book: str, cv: str) -> discord.Embed:
         url = f'{API}/verses/{lang}/{self.get_abbrev(book)}/{cv.replace(":", "/")}'
         verse = self.get_request(url)
         embed = self.general_check(verse, 'text', self.embed_verse)
-        
+
         return embed
 
     def embed_verse(self, verse: dict) -> discord.Embed:
@@ -131,18 +132,17 @@ class Bible(commands.Cog):
 
     @commands.command(name='randverse', help='Mostra um versículo aleatório', description="opcionalmente um Livro")
     async def randverse(self, ctx, book: str = ''):
-       
+
         if not book:
-            embed = self.get_random_verse(self.get_lang(ctx))
-            reply = ctx.reply(embed=embed, mention_author=False)
+            embed = self.get_random_verse(await self.get_lang(ctx))
+            await ctx.reply(embed=embed, mention_author=False)
+            await self.give_xp(ctx.author.id, 70)
 
         else:
-            embed = self.get_random_verse(self.get_lang(ctx), f'/{self.get_abbrev(book)}')
-            reply = ctx.reply(embed=embed, mention_author=False)
+            embed = self.get_random_verse(await self.get_lang(ctx), f'/{self.get_abbrev(book)}')
+            await ctx.reply(embed=embed, mention_author=False)
 
-        await reply
-
-    def get_random_verse(self,lang, book: str = '') -> discord.Embed:
+    def get_random_verse(self, lang, book: str = '') -> discord.Embed:
         url = f'{API}/verses/{lang}{book}/random'
         verse = self.get_request(url)
         embed = self.general_check(
@@ -163,8 +163,10 @@ class Bible(commands.Cog):
             return
 
         if book and chapter:
-            embeds = self.get_chapter(self.get_lang(ctx), book, chapter)
+            embeds = self.get_chapter(await self.get_lang(ctx), book, chapter)
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
+
+            await self.give_xp(ctx.author.id, 7000)
 
             if len(embeds) > 1:
                 pages = Pages(self.bot, ctx, reply, embeds)
@@ -247,11 +249,11 @@ class Bible(commands.Cog):
         await reply.edit(embed=embeds[0])
 
         if len(embeds) > 1:
-            pages = Pages(self.bot ,ctx, reply, embeds)
+            pages = Pages(self.bot, ctx, reply, embeds)
             await pages.create_pages()
 
     async def get_embeds_search(self, ctx, search: str) -> list:
-        lang = self.get_lang(ctx)
+        lang = await self.get_lang(ctx)
         verses = await self.post_request(lang, search)
         embeds = self.check_search(verses, search, lang)
 
@@ -329,7 +331,7 @@ class Bible(commands.Cog):
 
         else:
             embed = self.request_msg(request.get('msg'))
-        
+
         return embed
 
     def split_list(self, lst: list, limit: int) -> list:
@@ -361,15 +363,15 @@ class Bible(commands.Cog):
         async with ClientSession(trust_env=True) as Session:
             async with Session.post(url, headers=HEADERS, json=data) as request:
                 return await request.json()
-    
+
+    @awaitable
     def get_lang(self, ctx) -> str:
         if ctx.channel.type == discord.ChannelType.private:
             return 'nvi'
 
         server = ServerSettings(ctx.guild.id)
         settings = server.get_settings('biblelang')
-        server.cursor.close()
-        
+
         return settings
 
     def get_abbrev(self, book: str) -> str:
@@ -379,10 +381,15 @@ class Bible(commands.Cog):
 
         return Dict.get(unidecode(book).lower())
 
+    @awaitable
+    def give_xp(self, id, xp):
+        user = UserLevel(id)
+        user.give_xp(xp)
+
     async def cog_command_error(self, ctx, error):
         response = "Epa, entupigaitei X_X"
         await ctx.reply(response, mention_author=False)
-        
+
         print(error)
 
 

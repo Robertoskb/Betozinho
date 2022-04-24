@@ -6,3 +6,4 @@ pynacl
 unidecode
 mysql-connector-python
 awaits
+easy_pil

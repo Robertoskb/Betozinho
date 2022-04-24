@@ -1,22 +1,21 @@
 import mysql.connector
-import json
-import os
-import sys
-import time
 from decouple import config
+import time
 
 
-con = mysql.connector.connect(host=config('host'), database=config('database'),
-                              user=config('user'), password=config('password'),
-                              autocommit=True, use_pure=True, raise_on_warnings=True)
 TABLE = 'serversettings'
 
 
 class ServerSettings():
 
     def __init__(self, server):
+        self.con = self._get_con()
         self.cursor = self._get_cursor()
         self.server = self._checkServer(server)
+    
+    def __del__(self):
+        self.con.close()
+        self.cursor.close()
 
     def insert(self, row, value):
         self.cursor.execute(f"INSERT INTO {TABLE} ({row}) values ({value})")
@@ -68,13 +67,20 @@ class ServerSettings():
 
     def _get_cursor(self):
         try:
-            cursor = con.cursor(buffered=True, dictionary=True)
+            cursor = self.con.cursor(buffered=True, dictionary=True)
 
         except:
-            con.reconnect()
-            cursor = con.cursor(buffered=True, dictionary=True)
+            self.con.reconnect()
+            cursor = self.con.cursor(buffered=True, dictionary=True)
 
         return cursor
+    
+    def _get_con(self):
+        con = mysql.connector.connect(host=config('host'), database=config('database'),
+        user=config('user'), password=config('password'),
+        autocommit=True, use_pure=True, raise_on_warnings=True)
+        
+        return con
 
 
 if __name__ == '__main__':

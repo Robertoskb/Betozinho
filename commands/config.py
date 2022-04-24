@@ -51,13 +51,11 @@ class Config(commands.Cog):
     def reset_config(self, ctx):
         server = ServerSettings(ctx.guild.id)
         server.reset()
-        server.cursor.close()
 
     @awaitable
     def update(self, ctx, values):
         server = ServerSettings(ctx.guild.id)
         server.update(values)
-        server.cursor.close()
 
     async def cog_command_error(self, ctx, error):
         response = 'Algum erro ao atualizar as configurações'

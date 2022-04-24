@@ -1,4 +1,3 @@
-from http import server
 import discord
 import random
 import json
@@ -74,7 +73,6 @@ class Talks(commands.Cog):
         
         server = ServerSettings(message.guild.id)
         settings = server.get_settings('talks')
-        server.cursor.close()
         
         return settings
 

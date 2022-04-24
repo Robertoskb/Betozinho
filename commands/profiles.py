@@ -1,4 +1,6 @@
 import discord
+import sys
+import os
 from discord.ext import commands
 from commands.utils.users import User
 from commands.utils.confirm import Confirm
@@ -29,7 +31,6 @@ class Profiles(commands.Cog):
     def create_user(self, id):
         user = User(id)
         created_user = user.create_user()
-        user.cursor.close()
 
         return created_user
 
@@ -38,8 +39,9 @@ class Profiles(commands.Cog):
         if not await self.get_user(ctx.author.id):
             return await ctx.reply('Você não tem perfil', mention_author=False)
 
-        additional = f'Eu vou sentir muita falta de você, {ctx.author.display_name}'
-        confirm = Confirm(self.bot, ctx, additional)
+        confirm = Confirm(
+            self.bot, ctx, f'Eu vou sentir muita falta de você, {ctx.author.display_name}')
+
         if await confirm.confirmation():
             await self.delete_user(ctx.author.id)
             response = "Perfil excluido do meu banco de dados 😔"
@@ -53,7 +55,6 @@ class Profiles(commands.Cog):
     def delete_user(self, id):
         user = User(id)
         user.delete_user()
-        user.cursor.close()
 
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
@@ -79,26 +80,40 @@ class Profiles(commands.Cog):
                 await response('Esse usuário não tem perfil')
 
     async def get_profile_img(self, user, profile):
-        level, xp, description = self.get_profile_infos(profile)
+        bg = await self.get_bg(user)
 
-        bg = Editor('bg.png')
-        avatar = await load_image_async(str(user.avatar_url))
-        avatar = Editor(avatar).resize((127, 127)).circle_image()
-        bg.paste(avatar.image, (67, 114))
+        font1, font2 = self.get_fonts()
 
-        font1 = Font(
-            '/usr/share/fonts/truetype/msttcorefonts/arial.ttf').poppins(size=30)
-        font2 = Font(
-            '/usr/share/fonts/truetype/msttcorefonts/arial.ttf').poppins(size=23)
-
-        bg.text((10, 10), str(user), font=font1, color='white')
-        bg.text((270, 150), description, font=font2, color='white')
-        bg.text(
-            (280, 190), f'Nível: {level}            XP: {xp}', font=font2, color='white')
+        bg = self.write_bg(bg, user, profile, font1, font2)
 
         file = discord.File(fp=bg.image_bytes, filename='card.png')
 
         return file
+
+    async def get_bg(self, user):
+        bg = Editor(os.path.join(sys.path[0], 'images/bg.png'))
+        avatar = await load_image_async(str(user.avatar_url))
+        avatar = Editor(avatar).resize((127, 127)).circle_image()
+        bg.paste(avatar.image, (67, 114))
+
+        return bg
+
+    def write_bg(self, bg, user, profile, font1, font2):
+        level, xp, description = self.get_profile_infos(profile)
+        bg.text((10, 10), str(user), font=font1, color='white')
+        bg.text((263, 146), description, font=font1, color='white')
+        bg.text(
+            (265, 190), f'Nível: {level}    XP: {xp}', font=font2, color='white')
+
+        return bg
+
+    def get_fonts(self):
+        font1 = Font(os.path.join(
+            sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=25)
+        font2 = Font(os.path.join(
+            sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=23)
+
+        return font1, font2
 
     def get_profile_infos(self, profile):
         level = profile.get('level')
@@ -115,7 +130,6 @@ class Profiles(commands.Cog):
     def get_user(self, id):
         user = User(id)
         profile = user.infos
-        user.cursor.close()
 
         return profile
 

@@ -41,8 +41,9 @@ class Confirm:
             return options[str(reaction.emoji)]
 
     def confirmation_embed(self):
-        embed = discord.Embed(title="Você tem certeza?",
-                              description=f"\n✅ **SIM**\n❌ **NÃO**\n\n{self.additional}",
-                              color=0x00B115)
+        title = "Você tem certeza?"
+        description = f"\n✅ **SIM**\n❌ **NÃO**\n\n{self.additional}"
+        color = 0x00B115
+        embed = discord.Embed(title=title,description=description, color=color)
 
         return embed
