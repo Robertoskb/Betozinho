@@ -233,6 +233,7 @@ class Bible(commands.Cog):
         if search:
             reply = await self.loadingMessage(ctx)
             await self.editsearch(ctx, reply, search)
+            await self.give_xp(ctx.author.id, 5)
 
         else:
             response = 'Tente digitar **-search** e a(s) palavra(s) você quer pesquisar'
