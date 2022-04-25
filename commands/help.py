@@ -60,7 +60,8 @@ class Help(commands.Cog):
 
             commandList += f'**-{command.name}**  *{command.help}*\n'
 
-        embed.add_field(name=cog_name.capitalize(), value=commandList, inline=False)
+        embed.add_field(name=cog_name.capitalize(),
+                        value=commandList, inline=False)
         embed.add_field(name='Help', value='**-help [comando]**', inline=False)
 
         return embed

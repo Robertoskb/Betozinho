@@ -28,11 +28,8 @@ class Random(commands.Cog):
         return self.sort_response(ctx, item)
 
     def sort_response(self, ctx, item: str) -> str:
-        ofenssive = self.BotDict('offensives')
-        before = self.BotDict('before')
-
-        ofenssive = ofenssive.format(ctx.author.name)
-        parcific = f'{before} {item.strip()}'
+        ofenssive = self.BotDict('offensives').format(ctx.author.name)
+        parcific = f'{self.BotDict("before")} {item.strip()}'
 
         if randint(1, 101) <= 5:
             return ofenssive
