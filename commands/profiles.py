@@ -153,7 +153,8 @@ class Profiles(commands.Cog):
             await self.profile(ctx)
 
         else:
-            await ctx.reply('Erro ao carregar perfil', mention_author=False)
+            response = 'Erro ao carregar perfil'
+            await ctx.reply(response, mention_author=False)
 
             print(error)
 

@@ -1,4 +1,6 @@
 import discord
+import os
+import sys
 from discord.ext import commands
 from decouple import config
 
@@ -14,14 +16,17 @@ async def on_ready():
 
     print('Estou Pronto!')
 
-bot.load_extension('commands.talks')
-bot.load_extension('commands.bible')
-bot.load_extension('commands.gifs')
-bot.load_extension('commands.smart')
-bot.load_extension('commands.profiles')
-
-bot.load_extension('commands.config')
-bot.load_extension('commands.help')
+def load_cogs(bot):
+    for file in os.listdir(os.path.join(sys.path[0],'commands')):
+        if file.endswith('.py'):
+            cog = file[:-3]
+            if cog != 'config':
+                bot.load_extension(f'commands.{cog}')
+    
+    bot.load_extension('commands.config')
+    
+    
+load_cogs(bot)
 
 TOKEN = config("TOKEN")
 bot.run(TOKEN)

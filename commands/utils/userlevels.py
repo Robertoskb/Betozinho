@@ -8,16 +8,12 @@ class UserLevel(User):
         super().__init__(id)
 
     def give_xp(self, xp):
-        level, new_xp, descr = self.get_updates(xp)
-
-        if level and xp != None and descr:
+        if self.infos:
+            level, new_xp, descr = self.get_updates(xp)
             updates = f'level={level}, xp={new_xp}, description="{descr}"'
             self.update_user(updates)
 
     def get_updates(self, xp):
-        if not self.infos:
-            return None, None, None
-
         level, new_xp = self.get_level_xp(xp)
         descr = self.get_description(level)
 
@@ -30,7 +26,7 @@ class UserLevel(User):
         xp_needed = level * 20000
         while new_xp >= xp_needed and level < 7:
             level += 1
-            new_xp = new_xp - xp_needed
+            new_xp -= xp_needed
             xp_needed = level * 20000
 
         return level, new_xp
