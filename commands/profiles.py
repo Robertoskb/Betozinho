@@ -4,7 +4,6 @@ import os
 from discord.ext import commands
 from commands.utils.users import User
 from commands.utils.confirm import Confirm
-from awaits.awaitable import awaitable
 from easy_pil import Editor, Font, load_image_async
 
 COLOR = 0x00B115
@@ -19,7 +18,7 @@ class Profiles(commands.Cog):
     @commands.command(name='create', help='Criar um perfil', description='sem argumentos')
     async def create(self, ctx):
         rest_response = 'Veja o seu perfil com **-profile**'
-        if await self.create_user(ctx.author.id):
+        if User(ctx.author.id).create_user():
             response = 'Perfil criado! ' + rest_response
 
         else:
@@ -27,23 +26,16 @@ class Profiles(commands.Cog):
 
         await ctx.reply(response, mention_author=False)
 
-    @awaitable
-    def create_user(self, id):
-        user = User(id)
-        created_user = user.create_user()
-
-        return created_user
-
     @commands.command(name='delete', help='Excluir o seu perfil dos meus dados', description='sem argumentos')
     async def delete(self, ctx):
-        if not await self.get_user(ctx.author.id):
+        if not User(ctx.author.id).infos:
             return await ctx.reply('Você não tem perfil', mention_author=False)
 
         confirm = Confirm(
             self.bot, ctx, f'Eu vou sentir muita falta de você, {ctx.author.display_name}')
 
         if await confirm.confirmation():
-            await self.delete_user(ctx.author.id)
+            User(ctx.author.id).delete_user()
             response = "Perfil excluido do meu banco de dados 😔"
 
         else:
@@ -51,40 +43,35 @@ class Profiles(commands.Cog):
 
         await ctx.reply(response, mention_author=False)
 
-    @awaitable
-    def delete_user(self, id):
-        user = User(id)
-        user.delete_user()
-
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
         def response(response): return ctx.reply(
             response, mention_author=False)
 
+        def img(user): return self.get_profile_img(ctx, user, profile)
+
         if mention is None:
-            profile = await self.get_user(ctx.author.id)
+            profile = User(ctx.author.id).infos
             if profile:
-                file = await self.get_profile_img(ctx.author, profile)
+                file = await img(ctx.author)
                 await ctx.reply(file=file, mention_author=False)
 
             else:
                 await response('Você não tem perfil! Crie um com **-create**')
 
         else:
-            profile = await self.get_user(mention.id)
+            profile = User(mention.id).infos
             if profile:
-                file = await self.get_profile_img(mention, profile)
+                file = await img(mention)
                 await ctx.reply(file=file, mention_author=False)
 
             else:
                 await response('Esse usuário não tem perfil')
 
-    async def get_profile_img(self, user, profile):
+    async def get_profile_img(self, ctx, user, profile):
         bg = await self.get_bg(user)
 
-        font1, font2 = self.get_fonts()
-
-        bg = self.write_bg(bg, user, profile, font1, font2)
+        bg = self.write_bg(ctx, bg, user, profile)
 
         file = discord.File(fp=bg.image_bytes, filename='card.png')
 
@@ -98,12 +85,17 @@ class Profiles(commands.Cog):
 
         return bg
 
-    def write_bg(self, bg, user, profile, font1, font2):
+    def write_bg(self, ctx, bg, user, profile):
+        fonts = self.get_fonts()
+        rank = self.get_rank(user.id, ctx.guild.members)
         level, xp, description = self.get_profile_infos(profile)
-        bg.text((10, 10), str(user), font=font1, color='white')
-        bg.text((263, 146), description, font=font1, color='white')
+
+        bg.text((10, 7), user.display_name, font=fonts[0], color='white')
         bg.text(
-            (265, 190), f'Nível: {level}    XP: {xp}', font=font2, color='white')
+            (10, 35), f'#{rank} {ctx.guild.name}', font=fonts[2], color='white')
+        bg.text((263, 146), description, font=fonts[1], color='white')
+        bg.text(
+            (265, 190), f'Nível: {level}    XP: {xp}', font=fonts[1], color='white')
 
         return bg
 
@@ -113,7 +105,10 @@ class Profiles(commands.Cog):
         font2 = Font(os.path.join(
             sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=23)
 
-        return font1, font2
+        font3 = Font(os.path.join(
+            sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18)
+
+        return [font1, font2, font3]
 
     def get_profile_infos(self, profile):
         level = profile.get('level')
@@ -121,17 +116,16 @@ class Profiles(commands.Cog):
         description = profile.get('description')
 
         if type(level) == int and level < 7:
-            xp = str(xp)
-            xp += f'/{level*20000}'
+            xp = f'{xp}/{level*20000}'
 
         return level, xp, description
 
-    @awaitable
-    def get_user(self, id):
+    def get_rank(self, id, server_members):
         user = User(id)
-        profile = user.infos
+        ids = [x.id for x in server_members]
+        rank = user.get_rank(ids)
 
-        return profile
+        return rank
 
     @create.error
     async def create_handler(self, ctx, error):

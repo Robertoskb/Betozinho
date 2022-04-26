@@ -4,7 +4,9 @@ import sys
 from discord.ext import commands
 from decouple import config
 
-bot = commands.Bot('-', help_command=None)
+intents = discord.Intents.default()
+intents.members = True
+bot = commands.Bot('-', help_command=None, intents=intents)
 
 
 @bot.event

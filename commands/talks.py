@@ -3,7 +3,6 @@ import random
 import json
 import os
 import sys
-from awaits.awaitable import awaitable
 from discord.ext import commands
 from commands.utils.serversettings import ServerSettings
 
@@ -18,7 +17,7 @@ class Talks(commands.Cog):
     async def on_message(self, message):
         if message.author == self.bot.user:
             return
-        if not await self.check_settings(message):
+        if not self.check_settings(message):
             return
 
         msgtype = self.get_MsgType(message)
@@ -65,8 +64,6 @@ class Talks(commands.Cog):
 
         return Dict[mode]
 
-
-    @awaitable
     def check_settings(self, message) -> int:
         if message.channel.type == discord.ChannelType.private:
             return 1
