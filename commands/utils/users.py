@@ -53,11 +53,11 @@ class User:
         
         return ranks.index(self.infos) + 1
     
-    def _select_members(self, ids):
+    def _select_members(self, server_members):
         select = f"SELECT * from {TABLE} WHERE id={self.infos['id']}"
         
-        for id in ids:
-            select += f' || id = {id}' 
+        for member in server_members:
+            select += f' || id = {member.id}' 
         self.cursor.execute(select)
         
         return self.cursor.fetchall()

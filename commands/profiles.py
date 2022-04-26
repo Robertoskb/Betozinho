@@ -87,7 +87,7 @@ class Profiles(commands.Cog):
 
     def write_bg(self, ctx, bg, user, profile):
         fonts = self.get_fonts()
-        rank = self.get_rank(user.id, ctx.guild.members)
+        rank = User(user.id).get_rank(ctx.guild.members)
         level, xp, description = self.get_profile_infos(profile)
 
         bg.text((10, 7), user.display_name, font=fonts[0], color='white')
@@ -119,13 +119,6 @@ class Profiles(commands.Cog):
             xp = f'{xp}/{level*20000}'
 
         return level, xp, description
-
-    def get_rank(self, id, server_members):
-        user = User(id)
-        ids = [x.id for x in server_members]
-        rank = user.get_rank(ids)
-
-        return rank
 
     @create.error
     async def create_handler(self, ctx, error):
