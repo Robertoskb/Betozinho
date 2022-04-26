@@ -49,7 +49,7 @@ class User:
     
     def get_rank(self, server_members):        
         select = self._select_members(server_members)
-        ranks = sorted(select, key = lambda i: (i['level'], i['xp']), reverse = True)
+        ranks = sorted(select, key=lambda i: (i['level'], i['xp']), reverse=True)
         
         return ranks.index(self.infos) + 1
     
