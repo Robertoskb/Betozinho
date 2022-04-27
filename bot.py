@@ -3,7 +3,7 @@ import os
 import sys
 from discord.ext import commands
 from decouple import config
-
+ 
 intents = discord.Intents.default()
 intents.members = True
 bot = commands.Bot('-', help_command=None, intents=intents)

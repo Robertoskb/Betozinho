@@ -108,7 +108,7 @@ class Bible(commands.Cog):
         if book and pattern:
             embed = self.get_verse(self.get_lang(ctx), book, chapter_verse)
             await ctx.reply(embed=embed, mention_author=False)
-            self.give_xp(ctx.author.id, 70)
+            UserLevel(ctx.author.id).give_xp(70)
 
         else:
             response = 'Tente digitar **-verse Livro Capítulo:Versículo**'
@@ -135,7 +135,7 @@ class Bible(commands.Cog):
         if not book:
             embed = self.get_random_verse(self.get_lang(ctx))
             await ctx.reply(embed=embed, mention_author=False)
-            self.give_xp(ctx.author.id, 70)
+            UserLevel(ctx.author.id).give_xp(70)
 
         else:
             embed = self.get_random_verse(self.get_lang(ctx), f'/{self.get_abbrev(book)}')
@@ -157,7 +157,7 @@ class Bible(commands.Cog):
             embeds = self.get_chapter(self.get_lang(ctx), book, chapter)
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
 
-            self.give_xp(ctx.author.id, 7000)
+            UserLevel(ctx.author.id).give_xp(7000)
 
             if len(embeds) > 1:
                 pages = Pages(self.bot, ctx, reply, embeds)
@@ -223,7 +223,7 @@ class Bible(commands.Cog):
 
         if search:
             reply = await self.loadingMessage(ctx)
-            self.give_xp(ctx.author.id, 10)
+            UserLevel(ctx.author.id).give_xp(10)
             await self.editsearch(ctx, reply, search)
 
         else:
@@ -371,10 +371,6 @@ class Bible(commands.Cog):
             Dict = json.load(j)
 
         return Dict.get(unidecode(book).lower())
-
-    def give_xp(self, id, xp):
-        user = UserLevel(id)
-        user.give_xp(xp)
 
     async def cog_command_error(self, ctx, error):
         response = "Epa, entupigaitei X_X"

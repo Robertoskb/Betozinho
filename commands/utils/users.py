@@ -80,14 +80,3 @@ class User:
         autocommit=True, use_pure=True, raise_on_warnings=True)
         
         return con
-
-
-if __name__ == "__main__":
-    for i in range(700001):
-        continue
-    
-    user = User(944347530660020314)
-    
-    print(user.get_rank([833810779257569350, 7121354631835581195]))
-    # {'id': 944347530660020314, 'level': 1, 'xp': 0, 'description': 'Adotado! Ef 1:5'}
-    # #944347530660020314 || 833810779257569350

@@ -7,3 +7,5 @@ unidecode
 mysql-connector-python
 awaits
 easy_pil
+pillow
+nextcord

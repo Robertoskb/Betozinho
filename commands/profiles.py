@@ -17,7 +17,11 @@ class Profiles(commands.Cog):
 
     @commands.command(name='create', help='Criar um perfil', description='sem argumentos')
     async def create(self, ctx):
+        if ctx.channel.type == discord.ChannelType.private:
+            return
+        
         rest_response = 'Veja o seu perfil com **-profile**'
+        
         if User(ctx.author.id).create_user():
             response = 'Perfil criado! ' + rest_response
 
@@ -28,6 +32,9 @@ class Profiles(commands.Cog):
 
     @commands.command(name='delete', help='Excluir o seu perfil dos meus dados', description='sem argumentos')
     async def delete(self, ctx):
+        if ctx.channel.type == discord.ChannelType.private:
+            return
+        
         if not User(ctx.author.id).infos:
             return await ctx.reply('Você não tem perfil', mention_author=False)
 
@@ -45,6 +52,9 @@ class Profiles(commands.Cog):
 
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
+        if ctx.channel.type == discord.ChannelType.private:
+            return
+        
         def response(response): return ctx.reply(
             response, mention_author=False)
 
@@ -70,15 +80,14 @@ class Profiles(commands.Cog):
 
     async def get_profile_img(self, ctx, user, profile):
         bg = await self.get_bg(user)
-
         bg = self.write_bg(ctx, bg, user, profile)
-
+        
         file = discord.File(fp=bg.image_bytes, filename='card.png')
 
         return file
 
     async def get_bg(self, user):
-        bg = Editor(os.path.join(sys.path[0], 'images/bg.png'))
+        bg = Editor(os.path.join(sys.path[0], 'images/bgs/bg.png'))
         avatar = await load_image_async(str(user.avatar_url))
         avatar = Editor(avatar).resize((127, 127)).circle_image()
         bg.paste(avatar.image, (67, 114))
@@ -91,22 +100,16 @@ class Profiles(commands.Cog):
         level, xp, description = self.get_profile_infos(profile)
 
         bg.text((10, 7), user.display_name, font=fonts[0], color='white')
-        bg.text(
-            (10, 35), f'#{rank} {ctx.guild.name}', font=fonts[2], color='white')
+        bg.text( (10, 35), f'#{rank} {ctx.guild.name}', font=fonts[2], color='white')
         bg.text((263, 146), description, font=fonts[1], color='white')
-        bg.text(
-            (265, 190), f'Nível: {level}    XP: {xp}', font=fonts[1], color='white')
+        bg.text((265, 190), f'Nível: {level}    XP: {xp}', font=fonts[1], color='white')
 
         return bg
 
     def get_fonts(self):
-        font1 = Font(os.path.join(
-            sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=25)
-        font2 = Font(os.path.join(
-            sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=23)
-
-        font3 = Font(os.path.join(
-            sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18)
+        font1 = Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=25)
+        font2 = Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=23)
+        font3 = Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18)
 
         return [font1, font2, font3]
 

@@ -43,18 +43,3 @@ class UserLevel(User):
         }
 
         return descriptions[level]
-
-
-if __name__ == '__main__':
-    user = UserLevel(1)
-    user.create_user()
-    for i in range(1, 100000):
-        user.give_xp(7000)
-    
-        print(user.infos, end = '\n\n')
-        
-        if user.infos['level'] == 7:
-            print(f'Versículos lidos: {i}')
-            break
-    
-    user.delete_user()

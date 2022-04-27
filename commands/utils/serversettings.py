@@ -81,18 +81,3 @@ class ServerSettings():
         autocommit=True, use_pure=True, raise_on_warnings=True)
         
         return con
-
-
-if __name__ == '__main__':
-    start = time.time()
-    
-    server = ServerSettings(947912008957845524) 
-    print(server.get_settings())
-
-    server.cursor.close()
-
-    end = time.time()
-
-    print(f'Tempo de execução: {end - start}s')
-
-_ = 947912008957845524
