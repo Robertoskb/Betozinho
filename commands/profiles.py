@@ -48,7 +48,7 @@ class Profiles(commands.Cog):
         def img(user): return self.get_profile_img(ctx, user, profile)
 
         if mention is None:
-            profile = User(ctx.author.id).infos
+            profile = User(ctx.author.id)
             if profile:
                 file = await img(ctx.author)
                 await ctx.reply(file=file, mention_author=False)
@@ -57,7 +57,7 @@ class Profiles(commands.Cog):
                 await response('Você não tem perfil! Crie um com **-create**')
 
         else:
-            profile = User(mention.id).infos
+            profile = User(mention.id)
             if profile:
                 file = await img(mention)
                 await ctx.reply(file=file, mention_author=False)
@@ -83,13 +83,12 @@ class Profiles(commands.Cog):
 
     def write_bg(self, ctx, bg, user, profile):
         fonts = self.get_fonts()
-        rank = User(user.id).get_rank(ctx.guild.members)
-        level, xp, description = self.get_profile_infos(profile)
-
+        rank = profile.get_rank(ctx.guild.members)
+        
         bg.text((10, 7), user.display_name, font=fonts[0], color='white')
         bg.text( (10, 35), f'#{rank} {ctx.guild.name}', font=fonts[2], color='white')
-        bg.text((263, 146), description, font=fonts[1], color='white')
-        bg.text((265, 190), f'Nível: {level}    XP: {xp}', font=fonts[1], color='white')
+        bg.text((263, 146), profile.infos['description'], font=fonts[1], color='white')
+        bg.text((265, 190), f'Nível: {profile.infos["level"]}    XP: {profile.get_needed_xp()}', font=fonts[1], color='white')
 
         return bg
 
@@ -99,16 +98,6 @@ class Profiles(commands.Cog):
         font3 = Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18)
 
         return [font1, font2, font3]
-
-    def get_profile_infos(self, profile):
-        level = profile.get('level')
-        xp = profile.get('xp')
-        description = profile.get('description')
-
-        if type(level) == int and level < 7:
-            xp = f'{xp}/{level*20000}'
-
-        return level, xp, description
 
     @create.error
     async def create_handler(self, ctx, error):

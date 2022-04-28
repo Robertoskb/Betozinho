@@ -58,6 +58,14 @@ class User:
         self.cursor.execute(select)
         
         return self.cursor.fetchall()
+    
+    def get_needed_xp(self):
+        xp = self.infos['xp']
+
+        if self.infos['level'] < 7:
+            xp = f'{xp}/{self.infos["level"]*20000}'
+            
+        return xp
 
     def _get_cursor(self):
         try:

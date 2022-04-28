@@ -219,6 +219,7 @@ class Bible(commands.Cog):
         if search:
             reply = await self.loadingMessage(ctx)
             UserLevel(ctx.author.id).give_xp(10)
+
             await self.editsearch(ctx, reply, search)
 
         else:

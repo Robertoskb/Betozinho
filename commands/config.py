@@ -8,11 +8,9 @@ class Config(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.guild_only()
     @commands.command(name='talks', help='Ativar ou Desativar minhas respostas', description='on/off')
     async def talks(self, ctx, on_off: str = ''):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-
         on_off = on_off.lower()
         if not on_off in ['on', 'off']:
             response = 'Digite on ou off'
@@ -23,11 +21,9 @@ class Config(commands.Cog):
 
         await ctx.reply(response, mention_author=False)
 
+    @commands.guild_only()
     @commands.command(name='biblev', help='Mudar linguagem da bíblia', description='sigla da linguagem')
     async def biblev(self, ctx, version: str = ''):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-
         versions = ['NVI', 'RA', 'ACF', 'KJV', 'BBE', 'RVR', 'APEE']
         if not version.upper() in versions:
             response = f'Digite uma versão entre {", ".join(versions)}'
@@ -38,6 +34,7 @@ class Config(commands.Cog):
 
         await ctx.reply(response, mention_author=False)
 
+    @commands.guild_only()
     @commands.command(name='reset', help='Resetar as minhas configurações', description='Sem argumentos')
     async def reset(self, ctx):
         ServerSettings(ctx.guild.id).reset()
@@ -50,10 +47,11 @@ class Config(commands.Cog):
         server.update(values)
 
     async def cog_command_error(self, ctx, error):
-        response = 'Algum erro ao atualizar as configurações'
-        await ctx.reply(response, mention_author=False)
+        if not isinstance(error, commands.NoPrivateMessage):
+            response = 'Algum erro ao atualizar as configurações'
+            await ctx.reply(response, mention_author=False)
 
-        print(error)
+            print(error)
 
 
 def setup(bot):

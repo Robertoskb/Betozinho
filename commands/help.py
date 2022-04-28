@@ -9,7 +9,7 @@ class Help(commands.Cog):
 
     @commands.command(name='help', aliases=['h'], help='The help command!', description='[command]')
     async def help(self, ctx, command_name: str = ''):
-        embed = discord.Embed(title='Help Commands!', color=0x00B115)
+        embed = discord.Embed(title='Comando de Ajuda ^^', color=0x00B115)
 
         if not command_name:
             embed = self.commandList(embed)
@@ -24,8 +24,7 @@ class Help(commands.Cog):
 
         for cog in cogs:
             embed.add_field(name=cog, value=self.bot.cogs[cog].__doc__)
-        embed.add_field(
-            name='Help', value='**-help [Categoria]**', inline=False)
+        embed.add_field(name='Help', value='**-help [Categoria]**', inline=False)
 
         return embed
 
@@ -36,15 +35,12 @@ class Help(commands.Cog):
         commandhelp = ""
         for cog in cogs:
             for command in self.bot.get_cog(cog).walk_commands():
-                if command.hidden:
-                    continue
-                if command.parent != None:
-                    continue
+                if command.hidden: continue
+                if command.parent != None: continue
 
                 if command.name == command_name.lower():
                     commandhelp = f'**-{command.name}  {command.description}**'
-                    embed.add_field(
-                        name=cog, value=commandhelp, inline=False)
+                    embed.add_field(name=cog, value=commandhelp, inline=False)
 
                     return embed
 
@@ -53,15 +49,12 @@ class Help(commands.Cog):
     def especificCog(self, embed: discord.Embed, cog_name: str) -> discord.Embed:
         commandList = ""
         for command in self.bot.get_cog(cog_name.capitalize()).walk_commands():
-            if command.hidden:
-                continue
-            if command.parent != None:
-                continue
+            if command.hidden: continue
+            if command.parent != None: continue
 
             commandList += f'**-{command.name}**  *{command.help}*\n'
 
-        embed.add_field(name=cog_name.capitalize(),
-                        value=commandList, inline=False)
+        embed.add_field(name=cog_name.capitalize(), value=commandList, inline=False)
         embed.add_field(name='Help', value='**-help [comando]**', inline=False)
 
         return embed
