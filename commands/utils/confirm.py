@@ -4,13 +4,12 @@ import asyncio
 
 class Confirm:
 
-    def __init__(self, bot, ctx, additional=''):
+    def __init__(self, bot, ctx):
         self.bot = bot
         self.ctx = ctx
-        self.additional = additional
 
-    async def confirmation(self):
-        embed = self.confirmation_embed()
+    async def confirmation(self, additional=''):
+        embed = self.confirmation_embed(additional)
         reply = await self.ctx.reply(embed=embed, mention_author=False)
 
         return await self.create_confirmation(reply)
@@ -40,9 +39,9 @@ class Confirm:
             await reply.delete()
             return options[str(reaction.emoji)]
 
-    def confirmation_embed(self):
+    def confirmation_embed(self, additional):
         title = "Você tem certeza?"
-        description = f"\n✅ **SIM**\n❌ **NÃO**\n\n{self.additional}"
+        description = f"\n✅ **SIM**\n❌ **NÃO**\n\n{additional}"
         color = 0x00B115
         embed = discord.Embed(title=title,description=description, color=color)
 

@@ -14,8 +14,9 @@ class ServerSettings():
         self.server = self._checkServer(server)
     
     def __del__(self):
-        self.con.close()
-        self.cursor.close()
+        if self.con.is_connected():
+            self.con.close()
+            self.cursor.close()
 
     def insert(self, row, value):
         self.cursor.execute(f"INSERT INTO {TABLE} ({row}) values ({value})")

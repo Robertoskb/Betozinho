@@ -1,8 +1,6 @@
 import discord
 from discord.ext import commands
 from commands.utils.serversettings import ServerSettings
-from awaits.awaitable import awaitable
-
 
 class Config(commands.Cog):
     """Configurações"""
@@ -20,7 +18,7 @@ class Config(commands.Cog):
             response = 'Digite on ou off'
 
         else:
-            await self.update(ctx, f'talks = {dict(on=1, off=0)[on_off]}')
+            self.update(ctx, f'talks = {dict(on=1, off=0)[on_off]}')
             response = f'As respostas foram {dict(on="**ativadas**", off="**desativadas**")[on_off]}'
 
         await ctx.reply(response, mention_author=False)
@@ -35,24 +33,18 @@ class Config(commands.Cog):
             response = f'Digite uma versão entre {", ".join(versions)}'
 
         else:
-            await self.update(ctx, f'biblelang = "{version.lower()}"')
+            self.update(ctx, f'biblelang = "{version.lower()}"')
             response = f'Versão redefinida para {version.upper()}'
 
         await ctx.reply(response, mention_author=False)
 
     @commands.command(name='reset', help='Resetar as minhas configurações', description='Sem argumentos')
     async def reset(self, ctx):
-        await self.reset_config(ctx)
+        ServerSettings(ctx.guild.id).reset()
 
         response = 'Configurações redefinidas'
         await ctx.reply(response, mention_author=False)
 
-    @awaitable
-    def reset_config(self, ctx):
-        server = ServerSettings(ctx.guild.id)
-        server.reset()
-
-    @awaitable
     def update(self, ctx, values):
         server = ServerSettings(ctx.guild.id)
         server.update(values)

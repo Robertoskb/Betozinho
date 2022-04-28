@@ -6,20 +6,15 @@ from commands.utils.users import User
 from commands.utils.confirm import Confirm
 from easy_pil import Editor, Font, load_image_async
 
-COLOR = 0x00B115
-
-
 class Profiles(commands.Cog):
     '''Perfis'''
 
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.guild_only()
     @commands.command(name='create', help='Criar um perfil', description='sem argumentos')
-    async def create(self, ctx):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-        
+    async def create(self, ctx):  
         rest_response = 'Veja o seu perfil com **-profile**'
         
         if User(ctx.author.id).create_user():
@@ -30,18 +25,14 @@ class Profiles(commands.Cog):
 
         await ctx.reply(response, mention_author=False)
 
+    @commands.guild_only()
     @commands.command(name='delete', help='Excluir o seu perfil dos meus dados', description='sem argumentos')
     async def delete(self, ctx):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-        
         if not User(ctx.author.id).infos:
             return await ctx.reply('Você não tem perfil', mention_author=False)
 
-        confirm = Confirm(
-            self.bot, ctx, f'Eu vou sentir muita falta de você, {ctx.author.display_name}')
-
-        if await confirm.confirmation():
+        additional = f'Eu vou sentir muita falta de você, {ctx.author.display_name}'
+        if await Confirm(self.bot, ctx).confirmation(additional):
             User(ctx.author.id).delete_user()
             response = "Perfil excluido do meu banco de dados 😔"
 
@@ -50,14 +41,10 @@ class Profiles(commands.Cog):
 
         await ctx.reply(response, mention_author=False)
 
+    @commands.guild_only()
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-        
-        def response(response): return ctx.reply(
-            response, mention_author=False)
-
+        def response(response): return ctx.reply(response, mention_author=False)
         def img(user): return self.get_profile_img(ctx, user, profile)
 
         if mention is None:
@@ -125,20 +112,23 @@ class Profiles(commands.Cog):
 
     @create.error
     async def create_handler(self, ctx, error):
-        response = 'Erro ao criar o seu perfil'
-        await ctx.reply(response, mention_author=False)
-
-        print(error)
+        if not isinstance(error, commands.NoPrivateMessage):
+            response = 'Erro ao criar o seu perfil'
+            await ctx.reply(response, mention_author=False)
+            print(error)
 
     @delete.error
     async def create_handler(self, ctx, error):
-        response = 'Erro ao excluir o seu perfil'
-        await ctx.reply(response, mention_author=False)
+        if not isinstance(error, commands.NoPrivateMessage):
+            response = 'Erro ao excluir o seu perfil'
+            await ctx.reply(response, mention_author=False)
 
-        print(error)
+            print(error)
 
     @profile.error
     async def profile_handler(self, ctx, error):
+        if isinstance(error, commands.NoPrivateMessage):
+            return
         if isinstance(error, commands.BadArgument):
             await self.profile(ctx)
 

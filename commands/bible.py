@@ -131,7 +131,6 @@ class Bible(commands.Cog):
 
     @commands.command(name='randverse', help='Mostra um versículo aleatório', description="opcionalmente um Livro")
     async def randverse(self, ctx, book: str = ''):
-
         if not book:
             embed = self.get_random_verse(self.get_lang(ctx))
             await ctx.reply(embed=embed, mention_author=False)
@@ -148,11 +147,9 @@ class Bible(commands.Cog):
 
         return embed
 
+    @commands.guild_only()
     @commands.command(name='chapter', help='Mostra todos os versículos de um capítulo', description="Livro Capítulo")
     async def chapter(self, ctx, book: str = '', chapter: str = ''):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-
         if book and chapter:
             embeds = self.get_chapter(self.get_lang(ctx), book, chapter)
             reply = await ctx.reply(embed=embeds[0], mention_author=False)
@@ -216,11 +213,9 @@ class Bible(commands.Cog):
 
         return embed
 
+    @commands.guild_only()
     @commands.command(name='search', help='Pesquisa por palavra', description="Palavra(s)")
     async def search(self, ctx, *, search: str = ''):
-        if ctx.channel.type == discord.ChannelType.private:
-            return
-
         if search:
             reply = await self.loadingMessage(ctx)
             UserLevel(ctx.author.id).give_xp(10)
@@ -373,6 +368,9 @@ class Bible(commands.Cog):
         return Dict.get(unidecode(book).lower())
 
     async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.NoPrivateMessage):
+            return
+        
         response = "Epa, entupigaitei X_X"
         await ctx.reply(response, mention_author=False)
 

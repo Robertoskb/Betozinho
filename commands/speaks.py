@@ -51,6 +51,11 @@ class Speak(commands.Cog):
     def get_file(self, file, speech):
         font = Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=50)
         img = Editor(os.path.join(sys.path[0], f'images/speaks/{file}.png'))
+        img = self.write_img(img, font, speech)
+
+        return discord.File(fp=img.image_bytes, filename='card.png')
+    
+    def write_img(self, img, font, speech):
         cx, cy = (925, 350)
         
         lines = textwrap.wrap(speech, 25)
@@ -62,7 +67,7 @@ class Speak(commands.Cog):
             img.text((cx-(w/2), y_text), line, color='white', font=font)
             y_text += h
                    
-        return discord.File(fp=img.image_bytes, filename='card.png')
+        return img
 
 
 def setup(bot):

@@ -16,7 +16,6 @@ class User:
             self.con.close()
             self.cursor.close()
             
-    
     def select(self, row, value):
         self.cursor.execute(f"SELECT * from {TABLE} WHERE {row}={value}")
 
@@ -31,13 +30,11 @@ class User:
         return self.select('id', self.id)
 
     def create_user(self):
-        self.cursor.execute(f"INSERT INTO {TABLE} (id) values ({self.id})")
-        
-        select =self.select('id', self.id)
-        if select:
-            self.infos = select
-        
-        return self.select('id', self.id)
+        if not self.select('id', self.id):
+            self.cursor.execute(f"INSERT INTO {TABLE} (id) values ({self.id})")
+            self.infos = self.select('id', self.id)
+            
+            return self.infos
 
     def delete_user(self):
         self.cursor.execute(f"DELETE FROM {TABLE} WHERE id = {self.id}")
@@ -63,7 +60,6 @@ class User:
         return self.cursor.fetchall()
 
     def _get_cursor(self):
-        
         try:
             cursor = self.con.cursor(buffered=True, dictionary=True)
 
