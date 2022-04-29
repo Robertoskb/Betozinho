@@ -6,6 +6,7 @@ from commands.utils.users import User
 from commands.utils.confirm import Confirm
 from easy_pil import Editor, Font, load_image_async
 
+
 class Profiles(commands.Cog):
     '''Perfis'''
 
@@ -14,9 +15,9 @@ class Profiles(commands.Cog):
 
     @commands.guild_only()
     @commands.command(name='create', help='Criar um perfil', description='sem argumentos')
-    async def create(self, ctx):  
+    async def create(self, ctx):
         rest_response = 'Veja o seu perfil com **-profile**'
-        
+
         if User(ctx.author.id).create_user():
             response = 'Perfil criado! ' + rest_response
 
@@ -44,31 +45,23 @@ class Profiles(commands.Cog):
     @commands.guild_only()
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
-        def response(response): return ctx.reply(response, mention_author=False)
-        def img(user): return self.get_profile_img(ctx, user, profile)
+        user = ctx.author if not mention else mention
+        profile = User(ctx.author.id) if not mention else User(mention.id)
+        msg = 'Você não tem perfil! Crie um com **-create**' if not mention else 'Usuario não tem perfil'
 
-        if mention is None:
-            profile = User(ctx.author.id)
-            if profile:
-                file = await img(ctx.author)
-                await ctx.reply(file=file, mention_author=False)
+        if profile.infos:
+            file = await self.get_profile_img(ctx, user, profile)
 
-            else:
-                await response('Você não tem perfil! Crie um com **-create**')
+            await ctx.reply(file=file, mention_author=False)
 
         else:
-            profile = User(mention.id)
-            if profile:
-                file = await img(mention)
-                await ctx.reply(file=file, mention_author=False)
 
-            else:
-                await response('Esse usuário não tem perfil')
+            await ctx.reply(msg, mention_author=False)
 
     async def get_profile_img(self, ctx, user, profile):
         bg = await self.get_bg(user)
         bg = self.write_bg(ctx, bg, user, profile)
-        
+
         file = discord.File(fp=bg.image_bytes, filename='card.png')
 
         return file
@@ -84,9 +77,9 @@ class Profiles(commands.Cog):
     def write_bg(self, ctx, bg, user, profile):
         fonts = self.get_fonts()
         rank = profile.get_rank(ctx.guild.members)
-        
+
         bg.text((10, 7), user.display_name, font=fonts[0], color='white')
-        bg.text( (10, 35), f'#{rank} {ctx.guild.name}', font=fonts[2], color='white')
+        bg.text((10, 35), f'#{rank} {ctx.guild.name}',font=fonts[2], color='white')
         bg.text((263, 146), profile.infos['description'], font=fonts[1], color='white')
         bg.text((265, 190), f'Nível: {profile.infos["level"]}    XP: {profile.get_needed_xp()}', font=fonts[1], color='white')
 
