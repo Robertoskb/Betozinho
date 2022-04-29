@@ -46,7 +46,7 @@ class Profiles(commands.Cog):
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
         user = ctx.author if not mention else mention
-        profile = User(ctx.author.id) if not mention else User(mention.id)
+        profile = User(user.id)
         msg = 'Você não tem perfil! Crie um com **-create**' if not mention else 'Usuario não tem perfil'
 
         if profile.infos:
