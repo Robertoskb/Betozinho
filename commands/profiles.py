@@ -45,10 +45,10 @@ class Profiles(commands.Cog):
     @commands.guild_only()
     @commands.command(name='profile', aliases=['perfil'], help='Ver o seu perfil ou de alguém', description='opcionalmente @user')
     async def profile(self, ctx, mention: discord.User = None):
-        user = ctx.author if not mention else mention
+        user = mention or ctx.author
         profile = User(user.id)
         msg = 'Você não tem perfil! Crie um com **-create**' if not mention else 'Usuario não tem perfil'
-
+        
         if profile.infos:
             file = await self.get_profile_img(ctx, user, profile)
 
@@ -59,18 +59,18 @@ class Profiles(commands.Cog):
             await ctx.reply(msg, mention_author=False)
 
     async def get_profile_img(self, ctx, user, profile):
-        bg = await self.get_bg(user)
+        bg = await self.get_bg(user, profile)
         bg = self.write_bg(ctx, bg, user, profile)
 
         file = discord.File(fp=bg.image_bytes, filename='card.png')
 
         return file
 
-    async def get_bg(self, user):
-        bg = Editor(os.path.join(sys.path[0], 'images/bgs/bg.png'))
+    async def get_bg(self, user, profile):
+        bg = Editor(os.path.join(sys.path[0], f'images/bgs/bglv{profile.infos["bg"]}.png'))
         avatar = await load_image_async(str(user.avatar_url))
-        avatar = Editor(avatar).resize((127, 127)).circle_image()
-        bg.paste(avatar.image, (67, 114))
+        avatar = Editor(avatar).resize((182, 182)).circle_image()
+        bg.paste(avatar.image, (30, 88))
 
         return bg
 
@@ -78,19 +78,23 @@ class Profiles(commands.Cog):
         fonts = self.get_fonts()
         rank = profile.get_rank(ctx.guild.members)
 
-        bg.text((10, 7), user.display_name, font=fonts[0], color='white')
-        bg.text((10, 35), f'#{rank} {ctx.guild.name}',font=fonts[2], color='white')
-        bg.text((263, 146), profile.infos['description'], font=fonts[1], color='white')
-        bg.text((265, 190), f'Nível: {profile.infos["level"]}    XP: {profile.get_needed_xp()}', font=fonts[1], color='white')
+        bg.text((10, 7), user.display_name, font=fonts['main'], color='white')
+        bg.text((10, 45), f'#{rank} {ctx.guild.name}',font=fonts['rank'], color='white')
+        bg.text((245, 136), f'Nível {profile.infos["level"]}', font=fonts['status'], color='white')
+        bg.text((245, 165), f'XP {profile.get_needed_xp()}', font=fonts['status'], color='white')
+        bg.text((10, 300), profile.infos['description'], font=fonts['descr'], color='white')
 
         return bg
 
     def get_fonts(self):
-        font1 = Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=25)
-        font2 = Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=23)
-        font3 = Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18)
-
-        return [font1, font2, font3]
+        fonts = {
+        'main' : Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=30),
+        'status': Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=32),
+        'rank' : Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18),
+        'descr': Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=30)
+        }
+        
+        return fonts
 
     @create.error
     async def create_handler(self, ctx, error):

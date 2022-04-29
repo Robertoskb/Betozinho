@@ -10,7 +10,7 @@ class UserLevel(User):
     def give_xp(self, xp):
         if self.infos:
             level, new_xp, descr = self.get_updates(xp)
-            updates = f'level={level}, xp={new_xp}, description="{descr}"'
+            updates = f'level={level}, xp={new_xp}, description="{descr}", bg={level}'
             self.update_user(updates)
 
     def get_updates(self, xp):
