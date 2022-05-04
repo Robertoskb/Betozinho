@@ -13,13 +13,14 @@ bot = commands.Bot('-', help_command=None, intents=intents)
 async def on_ready():
     await bot.change_presence(
         status=discord.Status.online,
-        activity=discord.Game(name='Minecraft', type=3)
+        activity=discord.Game(name='-help', type=3)
     )
 
     print('Estou Pronto!')
 
-def load_cogs(bot):
-    for file in os.listdir(os.path.join(sys.path[0],'commands')):
+
+def load_cogs():
+    for file in os.listdir(os.path.join(sys.path[0], 'commands')):
         if file.endswith('.py'):
             cog = file[:-3]
             if cog != 'config':
@@ -28,7 +29,7 @@ def load_cogs(bot):
     bot.load_extension('commands.config')
     
     
-load_cogs(bot)
+load_cogs()
 
 TOKEN = config("TOKEN")
 bot.run(TOKEN)

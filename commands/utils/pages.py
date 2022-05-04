@@ -45,7 +45,7 @@ class Pages:
             cur_page -= 1
             await self.reply.edit(embed=self.embeds[cur_page])
             await self.reply.remove_reaction(reaction, user)
-			
+
         else:
             await self.reply.remove_reaction(reaction, user)
 

@@ -43,6 +43,6 @@ class Confirm:
         title = "Você tem certeza?"
         description = f"\n✅ **SIM**\n❌ **NÃO**\n\n{additional}"
         color = 0x00B115
-        embed = discord.Embed(title=title,description=description, color=color)
+        embed = discord.Embed(title=title, description=description, color=color)
 
         return embed

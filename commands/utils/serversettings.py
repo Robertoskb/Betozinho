@@ -1,12 +1,11 @@
 import mysql.connector
 from decouple import config
-import time
 
 
 TABLE = 'serversettings'
 
 
-class ServerSettings():
+class ServerSettings:
 
     def __init__(self, server):
         self.con = self._get_con()
@@ -77,8 +76,8 @@ class ServerSettings():
         return cursor
     
     def _get_con(self):
-        con = mysql.connector.connect(host=config('host'), database=config('database'),
-        user=config('user'), password=config('password'),
-        autocommit=True, use_pure=True, raise_on_warnings=True)
+        con = mysql.connector.connect(
+        host=config('host'), database=config('database'), user=config('user'),
+        password=config('password'), autocommit=True, use_pure=True, raise_on_warnings=True)
         
         return con

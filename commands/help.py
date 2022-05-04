@@ -32,11 +32,12 @@ class Help(commands.Cog):
         cogs = self.cogs()
         embed.title = ''
 
-        commandhelp = ""
         for cog in cogs:
             for command in self.bot.get_cog(cog).walk_commands():
-                if command.hidden: continue
-                if command.parent != None: continue
+                if command.hidden:
+                    continue
+                if command.parent is not None:
+                    continue
 
                 if command.name == command_name.lower():
                     commandhelp = f'**-{command.name}  {command.description}**'
@@ -47,14 +48,16 @@ class Help(commands.Cog):
         return self.especificCog(embed, command_name)
 
     def especificCog(self, embed: discord.Embed, cog_name: str) -> discord.Embed:
-        commandList = ""
+        commandlist = ""
         for command in self.bot.get_cog(cog_name.capitalize()).walk_commands():
-            if command.hidden: continue
-            if command.parent != None: continue
+            if command.hidden:
+                continue
+            if command.parent is not None:
+                continue
 
-            commandList += f'**-{command.name}**  *{command.help}*\n'
+            commandlist += f'**-{command.name}**  *{command.help}*\n'
 
-        embed.add_field(name=cog_name.capitalize(), value=commandList, inline=False)
+        embed.add_field(name=cog_name.capitalize(), value=commandlist, inline=False)
         embed.add_field(name='Help', value='**-help [comando]**', inline=False)
 
         return embed

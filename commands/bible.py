@@ -93,8 +93,7 @@ class Bible(commands.Cog):
         embed = discord.Embed(color=COLOR)
 
         embed.add_field(name='Livro', value=book['name'], inline=False)
-        embed.add_field(name='Testamento',
-                        value=testaments[book['testament']], inline=False)
+        embed.add_field(name='Testamento', value=testaments[book['testament']], inline=False)
         embed.add_field(name='Grupo', value=book['group'], inline=False)
         embed.add_field(name='Capítulos', value=f"{book['chapters']} caps")
         embed.add_field(name='Autor', value=book['author'])
@@ -254,7 +253,7 @@ class Bible(commands.Cog):
 
         return embed
 
-    def check_search(self, verses: str, search: str, lang: str) -> list:
+    def check_search(self, verses: dict, search: str, lang: str) -> list:
         if verses.get('verses'):
             embeds = self.create_embeds_search(verses, search, lang)
 
@@ -271,7 +270,7 @@ class Bible(commands.Cog):
 
         return [embed]
 
-    def create_embeds_search(self, verses: list, search: str, lang: str) -> list:
+    def create_embeds_search(self, verses: dict, search: str, lang: str) -> list:
         verses_lists = self.split_list(verses['verses'], 5)
 
         embeds = []
