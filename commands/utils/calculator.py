@@ -53,7 +53,7 @@ class Calculator:
 
     def edit_expression(self, reaction):
         if reaction != '🔙':
-            self._expression = self._expression.replace('. . .', '')
+            self._expression = self._expression.replace('. . .', '').replace("**", "*")
             self._expression += buttons[reaction]
 
         else:
