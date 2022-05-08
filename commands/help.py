@@ -70,11 +70,10 @@ class Help(commands.Cog):
 
         return cogs
 
-    async def cog_command_error(self, _, error):
-        if isinstance(error, AttributeError):
-            pass
-        else:
-            print(error)
+    async def cog_command_error(self, _, __):
+        pass
+
+
 
 
 def setup(bot):
