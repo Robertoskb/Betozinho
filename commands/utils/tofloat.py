@@ -1,5 +1,4 @@
 import re
-from fractions import Fraction
 
 pattern = '[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ?'
 
@@ -11,7 +10,7 @@ class ToFloat(float):
         rx2 = re.compile(f"{pattern}/{pattern}", re.VERBOSE)
 
         if "".join(rx1.findall(number)) == number or "".join(rx2.findall(number)) == number:
-            return super().__new__(cls, Fraction(eval(number)).limit_denominator())
+            return super().__new__(cls, eval(number))
 
 
 if __name__ == "__main__":
