@@ -3,6 +3,7 @@ from decouple import config
 
 TABLE = 'users'
 
+
 class User:
 
     def __init__(self, id):
@@ -77,7 +78,8 @@ class User:
 
         return cursor
     
-    def _get_con(self):
+    @staticmethod
+    def _get_con():
         con = mysql.connector.connect(
         host=config('host'), database=config('database'),
         user=config('user'), password=config('password'),

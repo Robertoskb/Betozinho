@@ -42,7 +42,8 @@ class Config(commands.Cog):
         response = 'Configurações redefinidas'
         await ctx.reply(response, mention_author=False)
 
-    def update(self, ctx, values):
+    @staticmethod
+    def update(ctx, values):
         server = ServerSettings(ctx.guild.id)
         server.update(values)
 

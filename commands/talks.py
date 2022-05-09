@@ -34,7 +34,8 @@ class Talks(commands.Cog):
 
         return msgtype
 
-    def CheckMsgType(self, typesdict, msg):
+    @staticmethod
+    def CheckMsgType(typesdict, msg):
         msgtype = ''
         for Type, lst in typesdict.items():
             for item in lst:
@@ -64,7 +65,8 @@ class Talks(commands.Cog):
 
         return Dict[mode]
 
-    def check_settings(self, message) -> int:
+    @staticmethod
+    def check_settings(message) -> int:
         if message.channel.type == discord.ChannelType.private:
             return 1
         

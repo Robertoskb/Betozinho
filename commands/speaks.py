@@ -54,7 +54,8 @@ class Speak(commands.Cog):
 
         return discord.File(fp=img.image_bytes, filename='card.png')
 
-    def write_img(self, img, font, speech):
+    @staticmethod
+    def write_img(img, font, speech):
         cx, cy = (925, 350)
 
         lines = textwrap.wrap(speech, 25)

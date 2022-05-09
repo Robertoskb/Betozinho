@@ -86,14 +86,15 @@ class Profiles(commands.Cog):
 
         return bg
 
-    def get_fonts(self):
+    @staticmethod
+    def get_fonts():
         fonts = {
         'main' : Font(os.path.join(sys.path[0], 'fonts/FreeMono.ttf')).poppins(size=30),
         'status': Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=32),
         'rank' : Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=18),
         'descr': Font(os.path.join(sys.path[0], 'fonts/FreeMonoBoldOblique.ttf')).poppins(size=30)
         }
-        
+
         return fonts
 
     @create.error

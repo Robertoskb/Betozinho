@@ -31,7 +31,8 @@ class UserLevel(User):
 
         return level, new_xp
 
-    def get_description(self, level):
+    @staticmethod
+    def get_description(level):
         descriptions = {
             1: 'Adotado! Ef 1:5',
             2: 'Adotado! Ef 1:5',

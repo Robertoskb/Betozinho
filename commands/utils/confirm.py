@@ -39,7 +39,8 @@ class Confirm:
             await reply.delete()
             return options[str(reaction.emoji)]
 
-    def confirmation_embed(self, additional):
+    @staticmethod
+    def confirmation_embed(additional):
         title = "Você tem certeza?"
         description = f"\n✅ **SIM**\n❌ **NÃO**\n\n{additional}"
         color = 0x00B115

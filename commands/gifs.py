@@ -97,7 +97,8 @@ class Gifs(commands.Cog):
 
         await ctx.channel.send(embed=embed)
 
-    def create_embed(self, type, desc):
+    @staticmethod
+    def create_embed(type, desc):
         request = requests.get(
             f'https://kawaii.red/api/gif/{type}/token={KAWAII}/').json()
 

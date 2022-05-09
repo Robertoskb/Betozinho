@@ -37,7 +37,8 @@ class Randons(commands.Cog):
         else:
             return parcific
 
-    def BotDict(self, mode: str) -> list:
+    @staticmethod
+    def BotDict(mode: str) -> list:
         arq = os.path.join(sys.path[0], 'dicts/dictforsmart.json')
         with open(arq, encoding='utf-8') as j:
             Dict = json.load(j)

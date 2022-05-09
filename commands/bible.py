@@ -51,7 +51,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embed
 
-    def testaments_books(self, books: dict) -> dict:
+    @staticmethod
+    def testaments_books(books: dict) -> dict:
         testaments = {'VT': '', 'NT': ''}
         for book in books:
             if book['testament'] == 'VT':
@@ -79,7 +80,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embed
 
-    def bookInfos(self, book: dict) -> discord.Embed:
+    @staticmethod
+    def bookInfos(book: dict) -> discord.Embed:
         testaments = {'VT': 'Antigo Testamento', 'NT': 'Novo Testamento'}
 
         embed = discord.Embed(color=COLOR)
@@ -112,7 +114,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embed
 
-    def embed_verse(self, verse: dict) -> discord.Embed:
+    @staticmethod
+    def embed_verse(verse: dict) -> discord.Embed:
         title = f"{verse['book']['name']} {verse['chapter']}:{verse['number']} ({verse['book']['version'].upper()})"
         descr = verse['text']
 
@@ -187,7 +190,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embeds
 
-    def chapter_header(self, verses_lists: list, verses: dict, embeds: list) -> discord.Embed:
+    @staticmethod
+    def chapter_header(verses_lists: list, verses: dict, embeds: list) -> discord.Embed:
         title = f"{verses['book']['name']} {verses['chapter']['number']} ({verses['book']['version'].upper()})"
         descr = f'página {len(embeds)+1} de {len(verses_lists)}\n\n'
         embed = discord.Embed(
@@ -195,7 +199,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embed
 
-    def chapter_main(self, embed: discord.Embed, lst: list) -> discord.Embed:
+    @staticmethod
+    def chapter_main(embed: discord.Embed, lst: list) -> discord.Embed:
         text = ''
         for verse in lst:
             text += f"**{verse['number']}** {verse['text']}\n\n"
@@ -238,7 +243,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embeds
 
-    def loadembed(self) -> discord.Embed:
+    @staticmethod
+    def loadembed() -> discord.Embed:
         title = 'Buscando 🔎'
         descr = 'Isso pode demorar alguns segundos'
         embed = discord.Embed(title=title, description=descr, color=COLOR)
@@ -254,7 +260,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embeds
 
-    def not_results(self, search: str) -> list:
+    @staticmethod
+    def not_results(search: str) -> list:
         title = 'Nada encontrado'
         descr = f'Nenhum resultado para **{search[:55]}...**'
         embed = discord.Embed(
@@ -274,7 +281,8 @@ class Bible(commands.Cog, BibleUtils):
 
         return embeds
 
-    def result_header(self, embeds: list, verses_lists: list, lang: str) -> discord.Embed:
+    @staticmethod
+    def result_header(embeds: list, verses_lists: list, lang: str) -> discord.Embed:
         descr = f'página {len(embeds)+1} de {len(verses_lists[:100])}'
         embed = discord.Embed(title=f"Resultados em {lang.upper()}", description=descr, color=COLOR)
 
