@@ -82,11 +82,13 @@ class Math(commands.Cog):
     @commands.command(name='rad', help="graus para radianos", description='número real')
     async def radians(self, ctx, number: ToFloat):
         radians = math.radians(number)
+
         rest = ''
         if int(radians) != radians:
-            rest = f'ou {str(Fraction(number/180).limit_denominator()).replace("/", "π/")}'
+            fraction = str(Fraction(number / 180).limit_denominator())
+            rest = f'ou {fraction.replace("/", "π/") if "/" in fraction else fraction+"π "}rad'
 
-        response = f'{radians}rad {rest}rad'
+        response = f'{radians}rad {rest}'
 
         await ctx.reply(response, mention_author=False)
 

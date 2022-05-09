@@ -5,7 +5,7 @@ from discord.ext import commands
 from random import randint, choice
 
 
-class Random(commands.Cog):
+class Randons(commands.Cog):
     '''Aleatórios'''
 
     def __init__(self, bot):
@@ -46,4 +46,4 @@ class Random(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Random(bot))
+    bot.add_cog(Randons(bot))
