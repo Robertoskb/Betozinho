@@ -201,11 +201,8 @@ class Bible(commands.Cog, BibleUtils):
 
     @staticmethod
     def chapter_main(embed: discord.Embed, lst: list) -> discord.Embed:
-        text = ''
         for verse in lst:
-            text += f"**{verse['number']}** {verse['text']}\n\n"
-
-        embed.description += text
+            embed.description += f"**{verse['number']}** {verse['text']}\n\n"
 
         return embed
 

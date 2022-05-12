@@ -22,9 +22,9 @@ class Help(commands.Cog):
         cogs = self.cogs()
         cogs.remove('Help')
 
+        embed.description = ''
         for cog in cogs:
-            embed.add_field(name=cog, value=self.bot.cogs[cog].__doc__)
-        embed.add_field(name='Help', value='**-help [Categoria]**', inline=False)
+            embed.description += f"**-help {cog}**\n"
 
         return embed
 
@@ -71,6 +71,7 @@ class Help(commands.Cog):
         return cogs
 
     async def cog_command_error(self, _, __):
+        print(__)
         pass
 
 

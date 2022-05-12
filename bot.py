@@ -22,11 +22,11 @@ async def on_ready():
 def load_cogs():
     for file in os.listdir(os.path.join(sys.path[0], 'commands')):
         if file.endswith('.py'):
-            cog = file[:-3]
-            if cog != 'config':
-                bot.load_extension(f'commands.{cog}')
+            if 'config' != file[:-3] != 'about':
+                bot.load_extension(f'commands.{file[:-3]}')
     
     bot.load_extension('commands.config')
+    bot.load_extension('commands.about')
     
     
 load_cogs()

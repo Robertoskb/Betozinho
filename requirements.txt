@@ -7,3 +7,4 @@ unidecode
 mysql-connector-python
 easy_pil
 num2words
+PyGitHub
