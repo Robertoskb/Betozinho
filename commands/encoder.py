@@ -23,8 +23,8 @@ class Encoder(commands.Cog):
         decode = translator.Decoder().decode(unidecode(text)).plaintext
 
         await ctx.reply(decode, mention_author=False)
-
-    @commands.command(name='sha256', help='codificar um texto em sha256', description='texto')
+  
+    @commands.command(name='sha256', help='codificar um texto para sha256', description='texto')
     async def hash(self, ctx, *, text: str):
         await ctx.reply(sha256(text.encode("utf-8")).hexdigest(), mention_author=False)
 
@@ -53,7 +53,7 @@ class Encoder(commands.Cog):
     @cipher.error
     async def cipher_handler(self, ctx, error):
         if isinstance(error, commands.BadArgument) or isinstance(error, commands.MissingRequiredArgument):
-            await ctx.reply("Digite um número inteiro para a cifra um texto", mention_author=False)
+            await ctx.reply("Digite um número inteiro para a cifra e um texto", mention_author=False)
 
 
 def setup(bot):
