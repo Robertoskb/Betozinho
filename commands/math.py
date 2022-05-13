@@ -12,6 +12,7 @@ class Math(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @commands.guild_only()
     @commands.command(name='calc', help='calculadora', description='sem argumentos')
     async def calculator(self, ctx):
         calculator = Calculator(self.bot, ctx)
@@ -74,8 +75,8 @@ class Math(commands.Cog):
     @commands.command(name='degr', help="radianos para graus", description='número real')
     async def degrees(self, ctx, number: ToFloat):
         degrees = math.degrees(number)
-        rest = f'ou {Fraction(degrees).limit_denominator()}' if int(degrees) != degrees else ''
-        response = f'{degrees}º {rest}º'
+        rest = f'ou {Fraction(degrees).limit_denominator()}º' if int(degrees) != degrees else ''
+        response = f'{degrees}º {rest}'
 
         await ctx.reply(response, mention_author=False)
 
@@ -93,6 +94,9 @@ class Math(commands.Cog):
         await ctx.reply(response, mention_author=False)
 
     async def cog_command_error(self, ctx, error):
+        if isinstance(error, commands.NoPrivateMessage):
+            return
+
         response = "Esse comando precisa de valores específicos! Use **-help [comando]**"
 
         await ctx.reply(response, mention_author=False)
