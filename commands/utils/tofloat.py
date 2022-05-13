@@ -7,7 +7,7 @@ pattern = r'[-+]? (?: (?: \d* \. \d+ ) | (?: \d+ \.? ) )(?: [Ee] [+-]? \d+ ) ? [
 class ToFloat(float):
 
     def __new__(cls, number: str):
-        def r(x): return x.replace("pi", "π") if x != "pi" else "1π"
+        def r(x): return x.replace("pi", "π") if "pi" != x != "π" else "1π"
         number = "/".join(map(r, number.split("/")))
 
         rx1 = re.compile(pattern, re.VERBOSE)
