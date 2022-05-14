@@ -4,7 +4,7 @@ from decouple import config
 
 def get_news():
     return dict(
-        Novidades="Novos comandos **Encoder**! Use **-help encoder** para saber mais ^^",
+        Novidades="Novos comandos **Animes**! Use **-help animes** para saber mais ^^",
         Alterações='Comandos **Math** podem aceitar expressões com **pi** ou **π**'
     )
 
