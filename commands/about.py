@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from commands.utils.repo import get_news, get_bot_version
+from commands.utils.repo import get_news, get_bot_version, get_last_commit_date
 
 
 class About(commands.Cog):
@@ -22,6 +22,8 @@ class About(commands.Cog):
             if not v:
                 continue
             embed.add_field(name=k, value=v, inline=False)
+
+        embed.set_footer(text=f'Atualizado em {get_last_commit_date()[:-8]}')
 
         return embed
 

@@ -1,8 +1,5 @@
 import discord
-import random
-import json
-import os
-import sys
+from commands.utils.talksutils import get_msg_type, responses
 from discord.ext import commands
 from commands.utils.serversettings import ServerSettings
 
@@ -15,55 +12,16 @@ class Talks(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
-        if message.author == self.bot.user:
+        if message.author.bot:
             return
         if not self.check_settings(message):
             return
 
-        msgtype = self.get_MsgType(message)
-        events = self.Responses(message)
+        msg_type = get_msg_type(message)
+        events = responses(message)
 
-        if events.get(msgtype):
-            await message.reply(events[msgtype], mention_author=False)
-
-    def get_MsgType(self, message) -> str:
-        typesdict = self.BotDict('input')
-        msg = message.content.lower()
-
-        msgtype = self.CheckMsgType(typesdict, msg)
-
-        return msgtype
-
-    @staticmethod
-    def CheckMsgType(typesdict, msg):
-        msgtype = ''
-        for Type, lst in typesdict.items():
-            for item in lst:
-                case1 = f'"{item}"' in msg
-                case2 = f"'{item}'" in msg
-
-                if case1 or case2:
-                    continue
-                if item in msg:
-                    msgtype = Type
-
-        return msgtype
-
-    def Responses(self, message) -> dict:
-        Dict = self.BotDict('responses')
-
-        author = message.author.display_name
-        for k, v in Dict.items():
-            Dict[k] = random.choice(v).format(author)
-
-        return Dict
-
-    def BotDict(self, mode: str) -> dict:
-        arq = os.path.join(sys.path[0], 'dicts/dictfortalks.json')
-        with open(arq, encoding='utf-8') as j:
-            Dict = json.load(j)
-
-        return Dict[mode]
+        if events.get(msg_type):
+            await message.reply(events[msg_type], mention_author=False)
 
     @staticmethod
     def check_settings(message) -> int:
