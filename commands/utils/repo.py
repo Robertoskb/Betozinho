@@ -4,7 +4,7 @@ from decouple import config
 
 def get_news():
     return dict(
-        Novidades="Novo comando **-faker** de **Randons**! Agora você pode criar uma identidade falsa sua ou de um amigo ^^",
+        Novidades="Agora você pode mandar gifs de volta para quem te marcou em **-slap**, **-hug** e **-pat** ^^",
     )
 
 
